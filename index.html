@@ -1,15 +1,14 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LootPay — Игровой маркетплейс</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg:#08080b;
   --card:#121218;
-  --card2:#191820;
   --purple:#945cff;
   --purple2:#7138df;
   --white:#fff;
@@ -18,285 +17,266 @@
 }
 *{box-sizing:border-box}
 body{
-  margin:0;background:var(--bg);color:var(--white);
+  margin:0;background:var(--bg);color:white;
   font-family:Arial,sans-serif;
 }
-button,input{font:inherit}
 header{
-  height:76px;padding:0 7%;
+  height:70px;padding:0 6%;
   display:flex;align-items:center;justify-content:space-between;
   border-bottom:1px solid var(--border);
   position:sticky;top:0;background:#08080bf2;
-  backdrop-filter:blur(15px);z-index:5;
+  z-index:5;
 }
-.logo{font-size:27px;font-weight:900;letter-spacing:-1px}
+.logo{font-size:27px;font-weight:900}
 .logo span{color:var(--purple)}
-.nav{display:flex;gap:25px;align-items:center}
-.nav a{color:#c5c3cf;text-decoration:none;font-size:14px}
-.nav a:hover{color:white}
+button,input{font:inherit}
 .btn{
   background:var(--purple);color:white;border:0;
   padding:12px 19px;border-radius:10px;
-  font-weight:700;cursor:pointer;
+  font-weight:bold;cursor:pointer;
 }
 .btn:hover{background:var(--purple2)}
-main{max-width:1160px;margin:auto;padding:55px 22px}
-.hero{
-  text-align:center;padding:45px 10px 65px;
-}
+main{max-width:1150px;margin:auto;padding:45px 20px}
+.hero{text-align:center;padding:40px 10px 60px}
 .tag{
   display:inline-block;color:#c7aaff;
   background:#201431;border:1px solid #51327d;
   border-radius:30px;padding:8px 14px;font-size:12px;
 }
-h1{font-size:clamp(38px,7vw,66px);margin:23px 0 15px;letter-spacing:-2px}
+h1{font-size:clamp(38px,7vw,65px);margin:22px 0 15px}
 h1 span{color:var(--purple)}
-.subtitle{color:var(--muted);font-size:16px;line-height:1.6}
-.search-wrap{max-width:590px;margin:30px auto 0;position:relative}
+.subtitle{color:var(--muted);line-height:1.6}
 .search{
-  width:100%;padding:18px 20px 18px 48px;
-  background:var(--card);border:1px solid var(--border);
-  border-radius:13px;color:white;outline:none;
+  width:100%;max-width:580px;padding:17px;
+  margin:25px auto;background:var(--card);
+  border:1px solid var(--border);border-radius:12px;
+  color:white;outline:none;display:block;
 }
 .search:focus{border-color:var(--purple)}
-.search-icon{position:absolute;left:17px;top:16px;color:var(--muted)}
-.section-head{
-  display:flex;align-items:center;justify-content:space-between;
-  margin:10px 0 23px;gap:10px;
-}
-h2{font-size:23px;margin:0}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+h2{font-size:23px}
 .count{color:var(--muted);font-size:13px}
-.games{
-  display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
-}
+.games{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
 .game{
-  min-height:125px;background:var(--card);
-  border:1px solid var(--border);border-radius:15px;
-  padding:18px 12px;cursor:pointer;text-align:left;
-  color:white;transition:.18s;
+  min-height:120px;background:var(--card);
+  border:1px solid var(--border);border-radius:14px;
+  padding:17px 12px;text-align:left;color:white;
+  cursor:pointer;transition:.2s;
 }
-.game:hover{
-  transform:translateY(-3px);border-color:var(--purple);
-  background:var(--card2);
-}
+.game:hover{border-color:var(--purple);transform:translateY(-3px)}
 .game-icon{
-  width:43px;height:43px;border-radius:12px;
-  background:#24202e;display:grid;place-items:center;
-  font-size:23px;margin-bottom:14px;
+  width:42px;height:42px;background:#24202e;
+  border-radius:12px;display:grid;place-items:center;
+  font-size:23px;margin-bottom:13px;
 }
-.game-name{font-size:14px;font-weight:700}
+.game-name{font-size:14px;font-weight:bold}
 .game-note{font-size:11px;color:var(--muted);margin-top:6px}
-.empty{
-  display:none;color:var(--muted);text-align:center;
-  padding:40px;border:1px dashed var(--border);border-radius:15px;
-}
-.promo{
-  margin-top:65px;padding:30px;border:1px solid #49316d;
-  background:linear-gradient(120deg,#21132f,#111018);
-  border-radius:18px;display:flex;justify-content:space-between;
-  align-items:center;gap:20px;
-}
-.promo h2{margin-bottom:9px}
-.promo p{color:#aaa6b7;margin:0;font-size:14px;line-height:1.5}
+.empty{display:none;text-align:center;color:var(--muted);padding:30px}
 footer{
-  border-top:1px solid var(--border);padding:28px 7%;
-  color:var(--muted);font-size:13px;text-align:center;
-  margin-top:70px;
+  border-top:1px solid var(--border);padding:25px;
+  color:var(--muted);text-align:center;font-size:13px;
 }
 .modal-bg{
   display:none;position:fixed;inset:0;background:#000c;
   z-index:10;align-items:center;justify-content:center;padding:18px;
 }
 .modal{
-  width:100%;max-width:520px;max-height:85vh;overflow:auto;
+  width:100%;max-width:500px;max-height:85vh;overflow:auto;
   background:#111116;border:1px solid var(--border);
-  border-radius:19px;padding:25px;
+  border-radius:18px;padding:24px;
 }
 .modal-top{display:flex;justify-content:space-between;align-items:center}
 .close{
   background:#26232e;border:0;color:white;
   width:36px;height:36px;border-radius:9px;cursor:pointer;
 }
-.modal h2{margin:17px 0 8px}
-.modal p{color:var(--muted);font-size:14px;line-height:1.5}
 .places{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
 .place{
-  padding:15px;background:var(--card);border:1px solid var(--border);
-  border-radius:11px;color:white;text-align:left;cursor:pointer;
+  padding:15px;background:var(--card);
+  border:1px solid var(--border);border-radius:11px;
+  color:white;text-align:left;cursor:pointer;
 }
 .place:hover{border-color:var(--purple)}
-.place small{display:block;color:var(--muted);margin-top:5px}
+.modal p{color:var(--muted);font-size:14px;line-height:1.5}
 .other-input{
   display:none;width:100%;padding:14px;margin-top:14px;
   background:var(--card);border:1px solid var(--border);
-  color:white;border-radius:10px;outline:none;
+  color:white;border-radius:10px;
 }
 @media(max-width:850px){.games{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:560px){
-  header{padding:0 18px;height:65px}
-  .nav{gap:12px}.nav a{display:none}
-  main{padding:30px 16px}
-  .hero{padding:35px 0 45px}
+  header{padding:0 17px}
+  main{padding:30px 15px}
   .games{grid-template-columns:repeat(2,1fr);gap:10px}
-  .game{min-height:112px}
-  .promo{align-items:flex-start;flex-direction:column}
-  .places{grid-template-columns:1fr 1fr}
+  .game{min-height:110px}
 }
 </style>
 </head>
 <body>
-
 <header>
   <div class="logo">Loot<span>Pay</span></div>
-  <nav class="nav">
-    <a href="#catalog">Каталог</a>
-    <a href="#about">О площадке</a>
-    <button class="btn" onclick="alert('Регистрация появится на следующем этапе')">Войти</button>
-  </nav>
+  <button class="btn" onclick="alert('Регистрация скоро появится!')">Войти</button>
 </header>
-
 <main>
   <section class="hero">
     <div class="tag">✦ ИГРОВОЙ МАРКЕТПЛЕЙС</div>
     <h1>Твой игровой мир.<br><span>Твои правила.</span></h1>
-    <p class="subtitle">Находи игровые предложения и выбирай то, что тебе нужно.</p>
-    <div class="search-wrap">
-      <span class="search-icon">⌕</span>
-      <input id="search" class="search" placeholder="Найти игру..." oninput="filterGames()">
-    </div>
+    <p class="subtitle">Находи игровые предложения в одном месте.</p>
+    <input id="search" class="search"
+      placeholder="Поиск игр..."
+      oninput="filterGames()">
   </section>
-
   <section id="catalog">
     <div class="section-head">
       <h2>Популярные игры</h2>
       <span class="count" id="count">15 игр</span>
     </div>
     <div class="games" id="games"></div>
-    <div class="empty" id="empty">Ничего не найдено. Попробуй другое название.</div>
-  </section>
-
-  <section class="promo" id="about">
-    <div>
-      <h2>Добро пожаловать в LootPay</h2>
-      <p>Единая площадка для игровых сообществ.<br>Мы постепенно открываем новые возможности.</p>
-    </div>
-    <button class="btn" onclick="document.getElementById('catalog').scrollIntoView({behavior:'smooth'})">Открыть каталог</button>
+    <div class="empty" id="empty">Игры не найдены.</div>
   </section>
 </main>
-
 <footer>© 2026 LootPay. Игровой маркетплейс.</footer>
-
 <div class="modal-bg" id="modal" onclick="outsideClose(event)">
   <div class="modal">
     <div class="modal-top">
       <div class="logo">Loot<span>Pay</span></div>
       <button class="close" onclick="closeModal()">✕</button>
     </div>
-    <h2 id="modalTitle">Выбор игры</h2>
-    <p id="modalText">Выбери нужную категорию.</p>
+    <h2 id="modalTitle"></h2>
+    <p id="modalText"></p>
     <div id="placeList" class="places"></div>
-    <input id="otherInput" class="other-input" placeholder="Напиши название плейса">
-    <button id="otherConfirm" class="btn" style="display:none;width:100%;margin-top:12px" onclick="confirmOther()">Продолжить</button>
+    <input id="otherInput" class="other-input"
+      placeholder="Название плейса">
+    <button id="otherConfirm" class="btn"
+      style="display:none;width:100%;margin-top:12px"
+      onclick="confirmOther()">Продолжить</button>
   </div>
 </div>
-
 <script>
-const games=[
- ["Roblox","🎮"],["Brawl Stars","⭐"],["Minecraft","⛏️"],
- ["Fortnite","🪂"],["PUBG Mobile","🎯"],["Standoff 2","🔫"],
- ["Counter-Strike 2","💣"],["Dota 2","🛡️"],["Valorant","⚡"],
- ["Free Fire","🔥"],["Mobile Legends","⚔️"],
- ["Genshin Impact","🌌"],["Honkai: Star Rail","🚄"],
- ["Clash Royale","👑"],["Growtopia","🌱"]
-];
-
-const places=[
- "Укради брейнрота","Grow a Garden","Blox Fruits",
- "Adopt Me!","Pet Simulator 99","Murder Mystery 2",
- "Brookhaven","Blade Ball","Другой плейс"
-];
-
-let selectedGame="";
-
-function renderGames(list){
- const root=document.getElementById("games");
- root.innerHTML="";
- list.forEach(([name,icon])=>{
-  const card=document.createElement("button");
-  card.className="game";
-  card.innerHTML=`<div class="game-icon">${icon}</div>
-   <div class="game-name">${name}</div>
-   <div class="game-note">Открыть каталог →</div>`;
-  card.onclick=()=>openGame(name);
-  root.appendChild(card);
- });
- document.getElementById("count").textContent=list.length+" игр";
- document.getElementById("empty").style.display=list.length?"none":"block";
+const SUPABASE_URL = "https://xgovpuwoxosvujkifhxj.supabase.co";
+const SUPABASE_KEY =
+"sb_publishable_yc77RVLqT52ahlIK9SBP2A_DXbnmoSk";
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+// Проверка Supabase без отображения статуса на сайте
+async function checkDatabase() {
+  try {
+    const { error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    console.log("LootPay: Supabase подключён");
+  } catch (error) {
+    console.error("Supabase:", error);
+  }
 }
-
-function filterGames(){
- const q=document.getElementById("search").value.toLowerCase().trim();
- renderGames(games.filter(g=>g[0].toLowerCase().includes(q)));
-}
-
-function openGame(name){
- selectedGame=name;
- document.getElementById("modal").style.display="flex";
- document.getElementById("otherInput").style.display="none";
- document.getElementById("otherConfirm").style.display="none";
- const list=document.getElementById("placeList");
- list.innerHTML="";
- document.getElementById("modalTitle").textContent=name;
- if(name==="Roblox"){
-  document.getElementById("modalText").textContent="Выбери плейс Roblox, в котором находится товар.";
-  places.forEach(place=>{
-   const b=document.createElement("button");
-   b.className="place";
-   b.textContent=place;
-   b.onclick=()=>{
-    if(place==="Другой плейс"){showOther();return;}
-    choosePlace(place);
-   };
-   list.appendChild(b);
+checkDatabase();
+const games = [
+  ["Roblox","🎮"],
+  ["Brawl Stars","⭐"],
+  ["Minecraft","⛏️"],
+  ["Fortnite","🪂"],
+  ["PUBG Mobile","🎯"],
+  ["Standoff 2","🔫"],
+  ["Counter-Strike 2","💣"],
+  ["Dota 2","🛡️"],
+  ["Valorant","⚡"],
+  ["Free Fire","🔥"],
+  ["Mobile Legends","⚔️"],
+  ["Genshin Impact","🌌"],
+  ["Honkai: Star Rail","🚄"],
+  ["Clash Royale","👑"],
+  ["Growtopia","🌱"]
+];
+const places = [
+  "Укради брейнрота",
+  "Grow a Garden",
+  "Blox Fruits",
+  "Adopt Me!",
+  "Pet Simulator 99",
+  "Murder Mystery 2",
+  "Brookhaven",
+  "Blade Ball",
+  "Другой плейс"
+];
+function renderGames(list) {
+  const root = document.getElementById("games");
+  root.innerHTML = "";
+  list.forEach(([name, icon]) => {
+    const card = document.createElement("button");
+    card.className = "game";
+    card.innerHTML = `
+      <div class="game-icon">${icon}</div>
+      <div class="game-name">${name}</div>
+      <div class="game-note">Открыть каталог →</div>
+    `;
+    card.onclick = () => openGame(name);
+    root.appendChild(card);
   });
- }else{
-  document.getElementById("modalText").textContent=
-   "Каталог "+name+" выбран. Раздел товаров появится на следующем этапе.";
-  const b=document.createElement("button");
-  b.className="place";
-  b.textContent="Понятно";
-  b.onclick=closeModal;
-  list.appendChild(b);
- }
+  document.getElementById("count").textContent =
+    list.length + " игр";
+  document.getElementById("empty").style.display =
+    list.length ? "none" : "block";
 }
-
-function showOther(){
- document.getElementById("otherInput").style.display="block";
- document.getElementById("otherConfirm").style.display="block";
- document.getElementById("otherInput").focus();
+function filterGames() {
+  const q = document.getElementById("search").value
+    .toLowerCase().trim();
+  renderGames(
+    games.filter(g => g[0].toLowerCase().includes(q))
+  );
 }
-function confirmOther(){
- const value=document.getElementById("otherInput").value.trim();
- if(!value){alert("Напиши название плейса");return;}
- choosePlace(value);
+function openGame(name) {
+  document.getElementById("modal").style.display = "flex";
+  document.getElementById("modalTitle").textContent = name;
+  const list = document.getElementById("placeList");
+  list.innerHTML = "";
+  document.getElementById("otherInput").style.display = "none";
+  document.getElementById("otherConfirm").style.display = "none";
+  if (name === "Roblox") {
+    document.getElementById("modalText").textContent =
+      "Выбери плейс Roblox.";
+    places.forEach(place => {
+      const b = document.createElement("button");
+      b.className = "place";
+      b.textContent = place;
+      b.onclick = () => {
+        if (place === "Другой плейс") {
+          document.getElementById("otherInput").style.display = "block";
+          document.getElementById("otherConfirm").style.display = "block";
+        } else {
+          choosePlace(place);
+        }
+      };
+      list.appendChild(b);
+    });
+  } else {
+    document.getElementById("modalText").textContent =
+      "Раздел " + name + " выбран. Каталог товаров появится позже.";
+  }
 }
-function choosePlace(place){
- document.getElementById("modalTitle").textContent="Roblox";
- document.getElementById("modalText").textContent=
- "Выбран плейс: "+place+". Каталог товаров добавим следующим этапом.";
- document.getElementById("placeList").innerHTML="";
- document.getElementById("otherInput").style.display="none";
- document.getElementById("otherConfirm").style.display="none";
- const b=document.createElement("button");
- b.className="place";
- b.textContent="Понятно";
- b.onclick=closeModal;
- document.getElementById("placeList").appendChild(b);
+function confirmOther() {
+  const value = document.getElementById("otherInput").value.trim();
+  if (!value) {
+    alert("Укажи название плейса");
+    return;
+  }
+  choosePlace(value);
 }
-function closeModal(){document.getElementById("modal").style.display="none";}
-function outsideClose(e){if(e.target.id==="modal")closeModal();}
+function choosePlace(place) {
+  document.getElementById("modalTitle").textContent = "Roblox";
+  document.getElementById("modalText").textContent =
+    "Выбран плейс: " + place;
+  document.getElementById("placeList").innerHTML = "";
+  document.getElementById("otherInput").style.display = "none";
+  document.getElementById("otherConfirm").style.display = "none";
+}
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+}
+function outsideClose(e) {
+  if (e.target.id === "modal") closeModal();
+}
 renderGames(games);
 </script>
 </body>
 </html>
-
