@@ -100,35 +100,54 @@ export default async function handler(req, res) {
     };
 
     // По умолчанию — ручная проверка
-    let decision = "review";
-    let reason = "Автоматическая проверка недоступна";
+    
+let decision = "review";
+let reason = "Автоматическая проверка недоступна";
 
-    try {
-      const moderationResponse = await fetch(
-        MIRROR_MODERATION_URL,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-moderation-secret": MODERATION_SECRET
-          },
-          body: JSON.stringify(listing)
-        }
-      );
+try {
+  console.log("MIRROR REQUEST:", MIRROR_MODERATION_URL);
 
-      if (moderationResponse.ok) {
-        const result = await moderationResponse.json();
-
-        if (
-          ["approved", "rejected", "review"].includes(result.decision)
-        ) {
-          decision = result.decision;
-          reason = String(result.reason || "").slice(0, 500);
-        }
-      }
-    } catch (error) {
-      console.error("Mirror moderation unavailable:", error);
+  const moderationResponse = await fetch(
+    MIRROR_MODERATION_URL,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-moderation-secret": MODERATION_SECRET
+      },
+      body: JSON.stringify(listing)
     }
+  );
+
+  const responseText = await moderationResponse.text();
+
+  console.log("MIRROR HTTP STATUS:", moderationResponse.status);
+  console.log("MIRROR RAW RESPONSE:", responseText);
+
+  if (!moderationResponse.ok) {
+    reason = "Mirror AI HTTP error: " + moderationResponse.status;
+  } else {
+    const result = JSON.parse(responseText);
+
+    if (
+      ["approved", "rejected", "review"].includes(result.decision)
+    ) {
+      decision = result.decision;
+      reason = String(result.reason || "Решение ИИ").slice(0, 500);
+    } else {
+      reason = "Mirror AI вернул неизвестное решение";
+    }
+  }
+} catch (error) {
+  console.error("MIRROR ERROR:", error);
+  reason = "Ошибка связи с Mirror AI: " + String(error.message || error);
+}
+
+console.log("FINAL MODERATION DECISION:", {
+  decision,
+  reason,
+  title: listing.title
+});
 
     // В базе review хранится как pending
     const status =
