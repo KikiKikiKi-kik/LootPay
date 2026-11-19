@@ -2,112 +2,55 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LootPay — Игровой маркетплейс</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root {
-  --bg:#08080b;
-  --card:#121218;
-  --purple:#945cff;
-  --purple2:#7138df;
-  --muted:#92919e;
-  --border:#292733;
-}
+:root{--bg:#08080b;--card:#121218;--purple:#945cff;--border:#292733;--muted:#92919e}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:white;font-family:Arial,sans-serif}
-header{
-  min-height:70px;padding:12px 6%;
-  display:flex;align-items:center;justify-content:space-between;
-  gap:12px;border-bottom:1px solid var(--border);
-  position:sticky;top:0;background:#08080bf2;z-index:5;
-}
-.logo{font-size:27px;font-weight:900}
-.logo span{color:var(--purple)}
+header{height:70px;padding:0 6%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;background:#08080bf2;z-index:5}
+.logo{font-size:27px;font-weight:900}.logo span{color:var(--purple)}
 button,input{font:inherit}
 button{cursor:pointer}
-.btn{
-  background:var(--purple);color:white;border:0;
-  padding:12px 19px;border-radius:10px;font-weight:bold;
-}
-.btn:hover{background:var(--purple2)}
-.btn-secondary{background:#26232e}
-.btn-secondary:hover{background:#393344}
-.account-area{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-#userName{font-size:13px;color:#c7aaff}
-main{max-width:1150px;margin:auto;padding:45px 20px}
-.hero{text-align:center;padding:40px 10px 60px}
-.tag{
-  display:inline-block;color:#c7aaff;background:#201431;
-  border:1px solid #51327d;border-radius:30px;
-  padding:8px 14px;font-size:12px;
-}
+.btn{background:var(--purple);color:white;border:0;padding:12px 19px;border-radius:10px;font-weight:bold}
+.btn:hover{background:#7138df}
+.secondary{background:#292733}
+main{max-width:1150px;margin:auto;padding:35px 20px}
+.hero{text-align:center;padding:40px 10px 55px}
+.tag{display:inline-block;color:#c7aaff;background:#201431;border:1px solid #51327d;border-radius:30px;padding:8px 14px;font-size:12px}
 h1{font-size:clamp(38px,7vw,65px);margin:22px 0 15px}
 h1 span{color:var(--purple)}
 .subtitle{color:var(--muted);line-height:1.6}
-.search{
-  width:100%;max-width:580px;padding:17px;margin:25px auto;
-  background:var(--card);border:1px solid var(--border);
-  border-radius:12px;color:white;outline:none;display:block;
-}
+.search{width:100%;max-width:580px;padding:17px;margin:25px auto;background:var(--card);border:1px solid var(--border);border-radius:12px;color:white;display:block;outline:none}
 .search:focus{border-color:var(--purple)}
 .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
 h2{font-size:23px}
 .count{color:var(--muted);font-size:13px}
 .games{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
-.game{
-  min-height:120px;background:var(--card);
-  border:1px solid var(--border);border-radius:14px;
-  padding:17px 12px;text-align:left;color:white;transition:.2s;
-}
+.game{min-height:120px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:17px 12px;text-align:left;color:white;transition:.2s}
 .game:hover{border-color:var(--purple);transform:translateY(-3px)}
-.game-icon{
-  width:42px;height:42px;background:#24202e;border-radius:12px;
-  display:grid;place-items:center;font-size:23px;margin-bottom:13px;
-}
+.game-icon{width:42px;height:42px;background:#24202e;border-radius:12px;display:grid;place-items:center;font-size:23px;margin-bottom:13px}
 .game-name{font-size:14px;font-weight:bold}
 .game-note{font-size:11px;color:var(--muted);margin-top:6px}
 .empty{display:none;text-align:center;color:var(--muted);padding:30px}
 footer{border-top:1px solid var(--border);padding:25px;color:var(--muted);text-align:center;font-size:13px}
-.modal-bg{
-  display:none;position:fixed;inset:0;background:#000c;z-index:10;
-  align-items:center;justify-content:center;padding:18px;
-}
-.modal{
-  width:100%;max-width:500px;max-height:85vh;overflow:auto;
-  background:#111116;border:1px solid var(--border);
-  border-radius:18px;padding:24px;
-}
+.modal-bg{display:none;position:fixed;inset:0;background:#000c;z-index:10;align-items:center;justify-content:center;padding:18px}
+.modal{width:100%;max-width:500px;max-height:85vh;overflow:auto;background:#111116;border:1px solid var(--border);border-radius:18px;padding:24px}
 .modal-top{display:flex;justify-content:space-between;align-items:center}
-.close{
-  background:#26232e;border:0;color:white;
-  width:36px;height:36px;border-radius:9px;
-}
+.close{background:#26232e;border:0;color:white;width:36px;height:36px;border-radius:9px}
 .places{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
-.place{
-  padding:15px;background:var(--card);border:1px solid var(--border);
-  border-radius:11px;color:white;text-align:left;
-}
+.place{padding:15px;background:var(--card);border:1px solid var(--border);border-radius:11px;color:white;text-align:left}
 .place:hover{border-color:var(--purple)}
 .modal p{color:var(--muted);font-size:14px;line-height:1.5}
-.other-input,.auth-input{
-  width:100%;padding:14px;margin-top:12px;
-  background:var(--card);border:1px solid var(--border);
-  color:white;border-radius:10px;outline:none;
-}
+.auth-input,.other-input{width:100%;padding:14px;margin-top:12px;background:var(--card);border:1px solid var(--border);color:white;border-radius:10px;outline:none}
 .auth-input:focus,.other-input:focus{border-color:var(--purple)}
-.auth-actions{display:flex;gap:10px;margin-top:18px}
-.auth-actions button{flex:1}
-.auth-message{font-size:13px;line-height:1.5;margin-top:14px;min-height:18px}
-.auth-switch{color:#c7aaff;text-decoration:underline;cursor:pointer}
+.auth-message{font-size:13px;line-height:1.5;margin-top:14px;overflow-wrap:anywhere}
+.auth-switch{background:none;border:0;color:#c7aaff;text-decoration:underline;padding:0}
+.account-area{display:flex;align-items:center;gap:10px}
+#userName{font-size:13px;color:#c7aaff}
 @media(max-width:850px){.games{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:560px){
-  header{padding:12px 17px}
-  main{padding:30px 15px}
-  .games{grid-template-columns:repeat(2,1fr);gap:10px}
-  .game{min-height:110px}
-  #userName{max-width:100px;overflow:hidden;text-overflow:ellipsis}
-}
+@media(max-width:560px){header{padding:0 15px}main{padding:25px 15px}.games{grid-template-columns:repeat(2,1fr);gap:10px}.game{min-height:110px}#userName{max-width:100px;overflow:hidden;text-overflow:ellipsis}}
 </style>
 </head>
 <body>
@@ -115,8 +58,8 @@ footer{border-top:1px solid var(--border);padding:25px;color:var(--muted);text-a
   <div class="logo">Loot<span>Pay</span></div>
   <div class="account-area">
     <span id="userName" style="display:none"></span>
-    <button class="btn" id="loginButton" onclick="openAuth('login')">Войти</button>
-    <button class="btn btn-secondary" id="logoutButton" onclick="logout()" style="display:none">Выйти</button>
+    <button class="btn" id="loginButton">Войти</button>
+    <button class="btn secondary" id="logoutButton" style="display:none">Выйти</button>
   </div>
 </header>
 <main>
@@ -124,9 +67,9 @@ footer{border-top:1px solid var(--border);padding:25px;color:var(--muted);text-a
     <div class="tag">✦ ИГРОВОЙ МАРКЕТПЛЕЙС</div>
     <h1>Твой игровой мир.<br><span>Твои правила.</span></h1>
     <p class="subtitle">Находи игровые предложения в одном месте.</p>
-    <input id="search" class="search" placeholder="Поиск игр..." oninput="filterGames()">
+    <input id="search" class="search" placeholder="Поиск игр...">
   </section>
-  <section id="catalog">
+  <section>
     <div class="section-head">
       <h2>Популярные игры</h2>
       <span class="count" id="count">15 игр</span>
@@ -136,166 +79,51 @@ footer{border-top:1px solid var(--border);padding:25px;color:var(--muted);text-a
   </section>
 </main>
 <footer>© 2026 LootPay. Игровой маркетплейс.</footer>
-<!-- Окно выбора игры -->
-<div class="modal-bg" id="modal" onclick="outsideClose(event)">
+<!-- Игровое окно -->
+<div class="modal-bg" id="gameModal">
   <div class="modal">
     <div class="modal-top">
       <div class="logo">Loot<span>Pay</span></div>
-      <button class="close" onclick="closeModal()">✕</button>
+      <button class="close" id="gameClose">✕</button>
     </div>
-    <h2 id="modalTitle"></h2>
-    <p id="modalText"></p>
+    <h2 id="gameTitle"></h2>
+    <p id="gameText"></p>
     <div id="placeList" class="places"></div>
-    <input id="otherInput" class="other-input" style="display:none" placeholder="Название плейса">
-    <button id="otherConfirm" class="btn" style="display:none;width:100%;margin-top:12px" onclick="confirmOther()">Продолжить</button>
+    <input id="otherInput" class="other-input" placeholder="Название плейса" style="display:none">
+    <button id="otherConfirm" class="btn" style="display:none;width:100%;margin-top:12px">Продолжить</button>
   </div>
 </div>
-<!-- Окно входа и регистрации -->
-<div class="modal-bg" id="authModal" onclick="authOutsideClose(event)">
+<!-- Авторизация -->
+<div class="modal-bg" id="authModal">
   <div class="modal">
     <div class="modal-top">
       <div class="logo">Loot<span>Pay</span></div>
-      <button class="close" onclick="closeAuth()">✕</button>
+      <button class="close" id="authClose">✕</button>
     </div>
     <h2 id="authTitle">Вход</h2>
     <p id="authDescription">Войди в свой аккаунт LootPay.</p>
-    <form id="authForm" onsubmit="handleAuth(event)">
-      <input class="auth-input" id="username" placeholder="Игровой ник" maxlength="24" style="display:none">
-      <input class="auth-input" id="email" type="email" placeholder="Электронная почта" required>
-      <input class="auth-input" id="password" type="password" placeholder="Пароль" minlength="6" required>
+    <form id="authForm">
+      <input id="username" class="auth-input" placeholder="Игровой ник" maxlength="24" style="display:none">
+      <input id="email" class="auth-input" type="email" placeholder="Электронная почта" required>
+      <input id="password" class="auth-input" type="password" placeholder="Пароль (минимум 6 символов)" minlength="6" required>
       <button class="btn" id="authSubmit" type="submit" style="width:100%;margin-top:16px">Войти</button>
     </form>
-    <div class="auth-message" id="authMessage"></div>
-    <p id="authSwitchText">
-      Нет аккаунта? <span class="auth-switch" onclick="openAuth('signup')">Зарегистрироваться</span>
+    <div id="authMessage" class="auth-message"></div>
+    <p id="switchText">
+      Нет аккаунта?
+      <button class="auth-switch" id="switchMode">Зарегистрироваться</button>
     </p>
   </div>
 </div>
 <script>
+"use strict";
+// SUPABASE
 const SUPABASE_URL = "https://xgovpuwoxosvujkifhxj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_yc77RVLqT52ahlIK9SBP2A_DXbnmoSk";
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let authMode = "login";
 let currentUser = null;
-// Авторизация
-function openAuth(mode) {
-  authMode = mode;
-  document.getElementById("authModal").style.display = "flex";
-  document.getElementById("authMessage").textContent = "";
-  document.getElementById("authForm").reset();
-  updateAuthForm();
-}
-function closeAuth() {
-  document.getElementById("authModal").style.display = "none";
-}
-function authOutsideClose(event) {
-  if (event.target.id === "authModal") closeAuth();
-}
-function updateAuthForm() {
-  const signup = authMode === "signup";
-  document.getElementById("authTitle").textContent =
-    signup ? "Регистрация" : "Вход";
-  document.getElementById("authDescription").textContent =
-    signup ? "Создай свой аккаунт LootPay." : "Войди в свой аккаунт LootPay.";
-  document.getElementById("username").style.display =
-    signup ? "block" : "none";
-  document.getElementById("username").required = signup;
-  document.getElementById("authSubmit").textContent =
-    signup ? "Создать аккаунт" : "Войти";
-  document.getElementById("authSwitchText").innerHTML = signup
-  ? `Уже есть аккаунт? <span class="auth-switch" onclick="openAuth('login')">Войти</span>`
-  : `Нет аккаунта? <span class="auth-switch" onclick="openAuth('signup')">Зарегистрироваться</span>`;
-async function handleAuth(event) {
-  event.preventDefault();
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
-  const username = document.getElementById("username").value.trim();
-  const message = document.getElementById("authMessage");
-  const submit = document.getElementById("authSubmit");
-  message.style.color = "#c7aaff";
-  message.textContent = "Подожди, выполняем запрос...";
-  submit.disabled = true;
-  try {
-    if (authMode === "signup") {
-      if (username.length < 3) {
-        throw new Error("Ник должен содержать минимум 3 символа.");
-      }
-      if (!/^[a-zA-Z0-9а-яА-ЯёЁ_-]+$/.test(username)) {
-        throw new Error("В нике можно использовать буквы, цифры, _ и -.");
-      }
-      const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { username },
-          emailRedirectTo: window.location.origin
-        }
-      });
-      if (error) throw error;
-      if (data.session) {
-        message.textContent = "Аккаунт создан! Ты вошёл в систему.";
-        await updateAuthUI(data.session.user);
-        setTimeout(closeAuth, 1000);
-      } else {
-        message.textContent =
-          "Почти готово! Проверь почту и подтверди регистрацию.";
-      }
-    } else {
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-      if (error) throw error;
-      message.textContent = "Вход выполнен!";
-      await updateAuthUI(data.user);
-      setTimeout(closeAuth, 700);
-    }
-  } catch (error) {
-    message.style.color = "#ff7777";
-    message.textContent = error.message || "Произошла ошибка.";
-  } finally {
-    submit.disabled = false;
-  }
-}
-async function updateAuthUI(user) {
-  currentUser = user || null;
-  document.getElementById("loginButton").style.display =
-    currentUser ? "none" : "block";
-  document.getElementById("logoutButton").style.display =
-    currentUser ? "block" : "none";
-  const name = document.getElementById("userName");
-  if (currentUser) {
-    name.textContent =
-      currentUser.user_metadata?.username || currentUser.email;
-    name.style.display = "block";
-  } else {
-    name.style.display = "none";
-  }
-}
-async function logout() {
-  const { error } = await supabaseClient.auth.signOut();
-  if (error) {
-    alert("Не удалось выйти: " + error.message);
-    return;
-  }
-  await updateAuthUI(null);
-}
-supabaseClient.auth.onAuthStateChange((event, session) => {
-  updateAuthUI(session?.user || null);
-});
-async function initializeAuth() {
-  const { data, error } = await supabaseClient.auth.getSession();
-  if (error) {
-    console.error("Ошибка проверки сессии:", error);
-    return;
-  }
-  await updateAuthUI(data.session?.user || null);
-}
-initializeAuth();
-// Каталог игр
+// ИГРЫ
 const games = [
   ["Roblox","🎮"],
   ["Brawl Stars","⭐"],
@@ -330,12 +158,11 @@ function renderGames(list) {
   list.forEach(([name, icon]) => {
     const card = document.createElement("button");
     card.className = "game";
-    card.innerHTML = `
-      <div class="game-icon">${icon}</div>
-      <div class="game-name">${name}</div>
-      <div class="game-note">Открыть каталог →</div>
-    `;
-    card.onclick = () => openGame(name);
+    card.innerHTML =
+      '<div class="game-icon">' + icon + '</div>' +
+      '<div class="game-name">' + name + '</div>' +
+      '<div class="game-note">Открыть каталог →</div>';
+    card.addEventListener("click", () => openGame(name));
     root.appendChild(card);
   });
   document.getElementById("count").textContent = list.length + " игр";
@@ -345,56 +172,173 @@ function filterGames() {
   const q = document.getElementById("search").value.toLowerCase().trim();
   renderGames(games.filter(g => g[0].toLowerCase().includes(q)));
 }
+document.getElementById("search").addEventListener("input", filterGames);
+// ИГРОВОЕ ОКНО
 function openGame(name) {
-  document.getElementById("modal").style.display = "flex";
-  document.getElementById("modalTitle").textContent = name;
+  document.getElementById("gameModal").style.display = "flex";
+  document.getElementById("gameTitle").textContent = name;
   const list = document.getElementById("placeList");
   list.innerHTML = "";
   document.getElementById("otherInput").style.display = "none";
   document.getElementById("otherConfirm").style.display = "none";
   if (name === "Roblox") {
-    document.getElementById("modalText").textContent = "Выбери плейс Roblox.";
+    document.getElementById("gameText").textContent = "Выбери плейс Roblox.";
     places.forEach(place => {
       const b = document.createElement("button");
       b.className = "place";
       b.textContent = place;
-      b.onclick = () => {
+      b.addEventListener("click", () => {
         if (place === "Другой плейс") {
           document.getElementById("otherInput").style.display = "block";
           document.getElementById("otherConfirm").style.display = "block";
         } else {
           choosePlace(place);
         }
-      };
+      });
       list.appendChild(b);
     });
   } else {
-    document.getElementById("modalText").textContent =
+    document.getElementById("gameText").textContent =
       "Раздел " + name + " выбран. Каталог товаров появится позже.";
   }
 }
-function confirmOther() {
+function choosePlace(place) {
+  document.getElementById("gameTitle").textContent = "Roblox";
+  document.getElementById("gameText").textContent = "Выбран плейс: " + place;
+  document.getElementById("placeList").innerHTML = "";
+  document.getElementById("otherInput").style.display = "none";
+  document.getElementById("otherConfirm").style.display = "none";
+}
+document.getElementById("otherConfirm").addEventListener("click", () => {
   const value = document.getElementById("otherInput").value.trim();
   if (!value) {
     alert("Укажи название плейса");
     return;
   }
   choosePlace(value);
+});
+document.getElementById("gameClose").addEventListener("click", () => {
+  document.getElementById("gameModal").style.display = "none";
+});
+// АВТОРИЗАЦИЯ
+function openAuth(mode) {
+  authMode = mode;
+  document.getElementById("authModal").style.display = "flex";
+  document.getElementById("authForm").reset();
+  document.getElementById("authMessage").textContent = "";
+  updateAuthForm();
 }
-function choosePlace(place) {
-  document.getElementById("modalTitle").textContent = "Roblox";
-  document.getElementById("modalText").textContent = "Выбран плейс: " + place;
-  document.getElementById("placeList").innerHTML = "";
-  document.getElementById("otherInput").style.display = "none";
-  document.getElementById("otherConfirm").style.display = "none";
+function closeAuth() {
+  document.getElementById("authModal").style.display = "none";
 }
-function closeModal() {
-  document.getElementById("modal").style.display = "none";
+function updateAuthForm() {
+  const signup = authMode === "signup";
+  document.getElementById("authTitle").textContent =
+    signup ? "Регистрация" : "Вход";
+  document.getElementById("authDescription").textContent =
+    signup ? "Создай аккаунт LootPay." : "Войди в свой аккаунт LootPay.";
+  document.getElementById("username").style.display = signup ? "block" : "none";
+  document.getElementById("username").required = signup;
+  document.getElementById("authSubmit").textContent =
+    signup ? "Создать аккаунт" : "Войти";
+  document.getElementById("switchText").firstChild.textContent =
+    signup ? "Уже есть аккаунт? " : "Нет аккаунта? ";
+  document.getElementById("switchMode").textContent =
+    signup ? "Войти" : "Зарегистрироваться";
 }
-function outsideClose(e) {
-  if (e.target.id === "modal") closeModal();
+document.getElementById("loginButton").addEventListener("click", () => openAuth("login"));
+document.getElementById("authClose").addEventListener("click", closeAuth);
+document.getElementById("switchMode").addEventListener("click", () => {
+  openAuth(authMode === "login" ? "signup" : "login");
+});
+document.getElementById("authForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const username = document.getElementById("username").value.trim();
+  const message = document.getElementById("authMessage");
+  const submit = document.getElementById("authSubmit");
+  submit.disabled = true;
+  message.style.color = "#c7aaff";
+  message.textContent = "Подождите...";
+  try {
+    if (authMode === "signup") {
+      if (username.length < 3) {
+        throw new Error("Ник должен содержать минимум 3 символа.");
+      }
+      if (!/^[a-zA-Z0-9а-яА-ЯёЁ_-]+$/.test(username)) {
+        throw new Error("Используй буквы, цифры, дефис или подчёркивание.");
+      }
+      const { data, error } = await db.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: { username: username },
+          emailRedirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+      if (data.session) {
+        message.textContent = "Аккаунт создан!";
+        await updateAccount(data.user);
+        setTimeout(closeAuth, 1000);
+      } else {
+        message.textContent = "Проверь почту и подтверди регистрацию.";
+      }
+    } else {
+      const { data, error } = await db.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+      if (error) throw error;
+      message.textContent = "Вход выполнен!";
+      await updateAccount(data.user);
+      setTimeout(closeAuth, 700);
+    }
+  } catch (error) {
+    message.style.color = "#ff7777";
+    message.textContent = error.message || "Не удалось выполнить запрос.";
+  } finally {
+    submit.disabled = false;
+  }
+});
+// АККАУНТ
+async function updateAccount(user) {
+  currentUser = user || null;
+  document.getElementById("loginButton").style.display =
+    currentUser ? "none" : "block";
+  document.getElementById("logoutButton").style.display =
+    currentUser ? "block" : "none";
+  const name = document.getElementById("userName");
+  if (currentUser) {
+    name.textContent =
+      currentUser.user_metadata?.username || currentUser.email;
+    name.style.display = "block";
+  } else {
+    name.style.display = "none";
+  }
 }
+document.getElementById("logoutButton").addEventListener("click", async () => {
+  const { error } = await db.auth.signOut();
+  if (error) {
+    alert("Ошибка выхода: " + error.message);
+    return;
+  }
+  await updateAccount(null);
+});
+async function initialize() {
+  try {
+    const { data, error } = await db.auth.getSession();
+    if (error) throw error;
+    await updateAccount(data.session?.user || null);
+    console.log("LootPay: Supabase подключён");
+  } catch (error) {
+    console.error("Ошибка Supabase:", error);
+  }
+}
+// ЗАПУСК
 renderGames(games);
+initialize();
 </script>
 </body>
 </html>
