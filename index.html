@@ -405,22 +405,22 @@ function renderGamePicker() {
   }).join("");
 
   document.querySelectorAll(".game-card").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const game = btn.dataset.game;
-      $("sellGame").value = game;
+  btn.onclick = () => {
+    const game = btn.dataset.game;
+    $("sellGame").value = game;
 
-      document.querySelectorAll(".game-card").forEach(x =>
-        x.classList.remove("selected")
-      );
+    document.querySelectorAll(".game-card").forEach(x =>
+      x.classList.remove("selected")
+    );
 
-      btn.classList.add("selected");
+    btn.classList.add("selected");
 
-      const isRoblox = game === "Roblox";
-      $("sellPlaceBlock").classList.toggle("hidden", !isRoblox);
+    const isRoblox = game === "Roblox";
+    $("sellPlaceBlock").classList.toggle("hidden", !isRoblox);
 
-      if (!isRoblox) $("sellPlace").value = "";
-    });
-  });
+    if (!isRoblox) $("sellPlace").value = "";
+  };
+});
 }
 
 function openAuth(mode) {
