@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -740,6 +739,7 @@ $("resetSearch").onclick = () => {
   loadListings("searchResults");
 };
 
+
 $("listingForm").onsubmit = async e => {
   e.preventDefault();
 
@@ -749,26 +749,74 @@ $("listingForm").onsubmit = async e => {
   }
 
   const msg = $("sellMessage");
-  msg.textContent = "Отправляем...";
+  const btn = $("listingForm").querySelector('button[type="submit"], button:not([type])');
+
+  btn.disabled = true;
+  msg.style.color = "var(--muted)";
+  msg.textContent = "ИИ проверяет объявление...";
 
   try {
     const game = $("sellGame").value;
-    if (!game) throw Error("Сначала выбери игру.");
 
-    const row = {
-      seller_id: currentUser.id,
-      title: $("sellTitle").value.trim(),
-      description: $("sellDescription").value.trim(),
-      game,
-      place: game === "Roblox" ? ($("sellPlace").value || null) : null,
-      category: $("sellCategory").value,
-      price: Number($("sellPrice").value),
-      image_url: $("sellImage").value.trim() || null,
-      status: "pending"
-    };
+    if (!game) {
+      throw Error("Сначала выбери игру.");
+    }
 
-    const { error } = await db.from("listings").insert(row);
+    const title = $("sellTitle").value.trim();
+    const description = $("sellDescription").value.trim();
+    const category = $("sellCategory").value;
+    const price = Number($("sellPrice").value);
+    const image_url = $("sellImage").value.trim() || null;
+    const place = game === "Roblox"
+      ? ($("sellPlace").value || null)
+      : null;
+
+    if (!title || !description || !category) {
+      throw Error("Заполни все обязательные поля.");
+    }
+
+    if (!Number.isFinite(price) || price <= 0) {
+      throw Error("Укажи корректную цену.");
+    }
+
+    // Получаем актуальный токен пользователя
+    const { data, error } = await db.auth.getSession();
+
     if (error) throw error;
+
+    const token = data.session?.access_token;
+
+    if (!token) {
+      throw Error("Сессия истекла. Войди заново.");
+    }
+
+    // Отправляем объявление серверному модератору
+    const response = await fetch("/api/moderate-listing", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        title,
+        description,
+        game,
+        place,
+        category,
+        price,
+        image_url
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw Error(result.error || "Не удалось проверить объявление.");
+    }
+
+    if (!result.success) {
+      throw Error("Не удалось сохранить объявление.");
+    }
 
     $("listingForm").reset();
     $("sellGame").value = "";
@@ -779,11 +827,24 @@ $("listingForm").onsubmit = async e => {
       x.classList.remove("selected")
     );
 
-    msg.style.color = "var(--green)";
-    msg.textContent = "Объявление отправлено на проверку!";
+    if (result.decision === "approved") {
+      msg.style.color = "var(--green)";
+      msg.textContent = "ИИ одобрил объявление! Оно опубликовано.";
+    } else if (result.decision === "rejected") {
+      msg.style.color = "var(--danger)";
+      msg.textContent = "ИИ отклонил объявление. Причина: " + result.reason;
+    } else {
+      msg.style.color = "var(--muted)";
+      msg.textContent = "Объявление отправлено на ручную проверку.";
+    }
+
+    await loadListings("myListings", true);
+
   } catch (err) {
     msg.style.color = "var(--danger)";
-    msg.textContent = err.message;
+    msg.textContent = err.message || "Ошибка отправки объявления.";
+  } finally {
+    btn.disabled = false;
   }
 };
 
