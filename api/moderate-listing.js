@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Проверяем авторизацию пользователя
+    // 1. Авторизация
     const authHeader = req.headers.authorization || "";
     const token = authHeader.startsWith("Bearer ")
       ? authHeader.slice(7)
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Invalid user" });
     }
 
-    // Проверяем данные объявления
+    // 2. Получение объявления
     const {
       title,
       description,
@@ -86,6 +86,40 @@ export default async function handler(req, res) {
       });
     }
 
+    // 3. Фото обязательно
+    if (typeof image_url !== "string" || !image_url.trim()) {
+      return res.status(400).json({
+        error: "Загрузи фотографию товара"
+      });
+    }
+
+    const imageUrl = image_url.trim();
+
+    // Разрешаем только изображения из собственного Storage
+    let parsedImageUrl;
+
+    try {
+      parsedImageUrl = new URL(imageUrl);
+    } catch {
+      return res.status(400).json({
+        error: "Некорректная ссылка на фотографию"
+      });
+    }
+
+    const expectedHost = new URL(SUPABASE_URL).host;
+    const expectedPath =
+      `/storage/v1/object/public/listing-images/${user.id}/`;
+
+    if (
+      parsedImageUrl.protocol !== "https:" ||
+      parsedImageUrl.host !== expectedHost ||
+      !parsedImageUrl.pathname.startsWith(expectedPath)
+    ) {
+      return res.status(400).json({
+        error: "Фото должно быть загружено через LootPay"
+      });
+    }
+
     const listing = {
       title: title.trim(),
       description: description.trim(),
@@ -93,63 +127,75 @@ export default async function handler(req, res) {
       place: typeof place === "string" ? place : null,
       category: category.trim(),
       price: Number(price),
-      image_url:
-        typeof image_url === "string" && image_url.trim()
-          ? image_url.trim()
-          : null
+      image_url: imageUrl
     };
 
-    // По умолчанию — ручная проверка
-    
-let decision = "review";
-let reason = "Автоматическая проверка недоступна";
+    // 4. Проверка через Mirror AI
+    let decision = "review";
+    let reason = "Не удалось подтвердить безопасность объявления";
 
-try {
-  console.log("MIRROR REQUEST:", MIRROR_MODERATION_URL);
+    try {
+      const moderationResponse = await fetch(
+        MIRROR_MODERATION_URL,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-moderation-secret": MODERATION_SECRET
+          },
+          body: JSON.stringify({
+            ...listing,
+            image_url: imageUrl,
+            image_required: true,
+            check_image_content: true,
+            check_game_match: true
+          })
+        }
+      );
 
-  const moderationResponse = await fetch(
-    MIRROR_MODERATION_URL,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-moderation-secret": MODERATION_SECRET
-      },
-      body: JSON.stringify(listing)
+      const responseText = await moderationResponse.text();
+
+      if (!moderationResponse.ok) {
+        throw new Error(
+          "Mirror AI HTTP " + moderationResponse.status
+        );
+      }
+
+      const result = JSON.parse(responseText);
+
+      if (
+        ["approved", "rejected", "review"].includes(result.decision)
+      ) {
+        decision = result.decision;
+        reason = String(
+          result.reason || "Решение Mirror AI"
+        ).slice(0, 500);
+
+        // Не доверяем одобрению без подтверждения анализа фото
+        if (
+          result.decision === "approved" &&
+          result.image_checked !== true
+        ) {
+          decision = "review";
+          reason = "Фотография не прошла подтверждённую проверку ИИ";
+        }
+
+        // Если ИИ обнаружил несоответствие фото и товара
+        if (result.image_matches === false) {
+          decision = "rejected";
+          reason = "Фотография не соответствует объявлению";
+        }
+      } else {
+        reason = "Mirror AI вернул неизвестное решение";
+      }
+    } catch (error) {
+      console.error("MIRROR ERROR:", error);
+
+      decision = "review";
+      reason = "Ошибка проверки: объявление отправлено на ручную модерацию";
     }
-  );
 
-  const responseText = await moderationResponse.text();
-
-  console.log("MIRROR HTTP STATUS:", moderationResponse.status);
-  console.log("MIRROR RAW RESPONSE:", responseText);
-
-  if (!moderationResponse.ok) {
-    reason = "Mirror AI HTTP error: " + moderationResponse.status;
-  } else {
-    const result = JSON.parse(responseText);
-
-    if (
-      ["approved", "rejected", "review"].includes(result.decision)
-    ) {
-      decision = result.decision;
-      reason = String(result.reason || "Решение ИИ").slice(0, 500);
-    } else {
-      reason = "Mirror AI вернул неизвестное решение";
-    }
-  }
-} catch (error) {
-  console.error("MIRROR ERROR:", error);
-  reason = "Ошибка связи с Mirror AI: " + String(error.message || error);
-}
-
-console.log("FINAL MODERATION DECISION:", {
-  decision,
-  reason,
-  title: listing.title
-});
-
-    // В базе review хранится как pending
+    // 5. Статус
     const status =
       decision === "approved"
         ? "approved"
@@ -157,7 +203,7 @@ console.log("FINAL MODERATION DECISION:", {
           ? "rejected"
           : "pending";
 
-    // Сохраняем объявление от имени проверенного пользователя
+    // 6. Сохранение
     const insertResponse = await fetch(
       `${SUPABASE_URL}/rest/v1/listings`,
       {
@@ -178,6 +224,7 @@ console.log("FINAL MODERATION DECISION:", {
 
     if (!insertResponse.ok) {
       const errorText = await insertResponse.text();
+
       console.error("Supabase insert error:", errorText);
 
       return res.status(500).json({
