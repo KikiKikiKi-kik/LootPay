@@ -206,9 +206,8 @@ function updateAuthForm() {
   document.getElementById("authSubmit").textContent =
     signup ? "Создать аккаунт" : "Войти";
   document.getElementById("authSwitchText").innerHTML = signup
-    ? 'Уже есть аккаунт? <span class="auth-switch" onclick="openAuth(\\'login\\')">Войти</span>'
-    : 'Нет аккаунта? <span class="auth-switch" onclick="openAuth(\\'signup\\')">Зарегистрироваться</span>';
-}
+  ? `Уже есть аккаунт? <span class="auth-switch" onclick="openAuth('login')">Войти</span>`
+  : `Нет аккаунта? <span class="auth-switch" onclick="openAuth('signup')">Зарегистрироваться</span>`;
 async function handleAuth(event) {
   event.preventDefault();
   const email = document.getElementById("email").value.trim();
