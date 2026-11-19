@@ -70,9 +70,12 @@ textarea.field{min-height:90px;resize:vertical}
 .game-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
 .game-card{border:1px solid var(--border);border-radius:12px;background:var(--panel2);color:white;padding:0;overflow:hidden;text-align:left}
 .game-card.selected{border:2px solid var(--purple);background:#241832}
-.game-art{height:85px;display:grid;place-items:center;font-size:38px;background:linear-gradient(135deg,#28203d,#15121f)}
+.game-art{height:105px;display:grid;place-items:center;font-size:38px;background:linear-gradient(135deg,#28203d,#15121f);overflow:hidden}
 .game-art img{width:100%;height:100%;object-fit:cover}
 .game-card-name{padding:9px;font-size:12px;font-weight:bold}
+.photo-preview{width:100%;max-height:250px;object-fit:contain;background:#201d29;border-radius:12px}
+.photo-upload{display:block;width:100%;padding:16px;border:1px dashed var(--purple);border-radius:12px;background:#191421;color:#ddd;text-align:center}
+.photo-upload input{display:none}
 footer{border-top:1px solid var(--border);padding:25px;color:var(--muted);text-align:center;font-size:13px}
 @media(max-width:850px){.grid-list{grid-template-columns:repeat(2,1fr)}.filters{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){
@@ -88,6 +91,7 @@ main{padding:18px 13px 100px}
 .chat-list{max-height:160px;overflow:auto}
 .account-area #userName{display:none!important}
 .game-picker{grid-template-columns:repeat(2,1fr)}
+.game-art{height:90px}
 }
 </style>
 </head>
@@ -111,7 +115,6 @@ main{padding:18px 13px 100px}
 <div class="panel">
 <div class="filters">
 <select class="field" id="filterGame"><option value="">Все игры</option></select>
-
 <select class="field" id="filterCategory">
 <option value="">Все категории</option>
 <option>Предметы</option>
@@ -120,20 +123,16 @@ main{padding:18px 13px 100px}
 <option>Валюта</option>
 <option>Другое</option>
 </select>
-
 <select class="field" id="filterPlace">
 <option value="">Все плейсы Roblox</option>
 </select>
-
 <select class="field" id="sort">
 <option value="new">Сначала новые</option>
 <option value="cheap">Сначала дешевле</option>
 <option value="expensive">Сначала дороже</option>
 </select>
 </div>
-
 <input class="field" id="searchText" placeholder="Название или описание товара...">
-
 <div class="row" style="margin-top:12px">
 <button class="btn" id="searchBtn">Найти</button>
 <button class="btn secondary" id="resetSearch">Сбросить</button>
@@ -149,10 +148,9 @@ main{padding:18px 13px 100px}
 
 <section class="page" id="sellPage">
 <h2>Разместить объявление</h2>
-<p class="muted">Выбери игру и заполни информацию. Объявление сначала попадёт на проверку.</p>
+<p class="muted">Выбери игру и заполни информацию. Фотография товара обязательна. Объявление сначала попадёт на проверку.</p>
 
 <form class="panel" id="listingForm">
-
 <label class="field-label">Выбери игру</label>
 <div class="game-picker" id="gamePicker"></div>
 <input type="hidden" id="sellGame" required>
@@ -178,15 +176,23 @@ main{padding:18px 13px 100px}
 <input class="field" id="sellTitle" maxlength="90" required placeholder="Например: Легендарный предмет">
 
 <label class="field-label">Описание</label>
-<textarea class="field" id="sellDescription" maxlength="1200" placeholder="Опиши предложение"></textarea>
+<textarea class="field" id="sellDescription" maxlength="1200" required placeholder="Опиши предложение"></textarea>
 
 <label class="field-label">Цена (₽)</label>
 <input class="field" id="sellPrice" type="number" min="1" max="10000000" step="1" required placeholder="Например: 300">
 
-<label class="field-label">Ссылка на изображение (необязательно)</label>
-<input class="field" id="sellImage" type="url" placeholder="https://...">
+<label class="field-label">Фотография товара — обязательно</label>
+<label class="photo-upload" for="sellImageFile">
+  <span id="photoUploadText">＋ Выбрать фотографию из галереи</span>
+  <input id="sellImageFile" type="file" accept="image/jpeg,image/png,image/webp" required>
+</label>
+<div id="sellImagePreview" class="hidden" style="margin-top:12px">
+  <img id="sellPreviewImg" class="photo-preview" alt="Предпросмотр фотографии">
+  <button type="button" class="btn secondary small" id="removeSellImage" style="margin-top:8px">Убрать фотографию</button>
+</div>
+<p class="muted" style="font-size:12px">JPG, PNG или WEBP. Максимальный размер — 5 МБ. Загружай собственное фото товара.</p>
 
-<button class="btn" style="width:100%;margin-top:16px">Отправить на проверку</button>
+<button class="btn" id="publishButton" type="submit" style="width:100%;margin-top:16px">Отправить на проверку</button>
 <div id="sellMessage" class="auth-message"></div>
 </form>
 </section>
@@ -219,7 +225,6 @@ main{padding:18px 13px 100px}
 </div>
 <div id="profileControls" class="profile-actions" style="margin-top:16px"></div>
 </div>
-
 <div class="section-head" style="margin-top:25px">
 <h2 id="myListingsTitle">Мои объявления</h2>
 <button class="btn secondary small" onclick="showPage('sellPage')">＋ Добавить</button>
@@ -246,19 +251,16 @@ main{padding:18px 13px 100px}
 </div>
 <h2 id="authTitle" style="margin-top:18px">Вход</h2>
 <p class="muted" id="authDescription">Войди в аккаунт LootPay.</p>
-
 <form id="authForm">
 <input id="username" class="field hidden" placeholder="Игровой ник" maxlength="24">
 <input id="email" class="field" type="email" placeholder="Электронная почта" required style="margin-top:10px">
 <input id="password" class="field" type="password" placeholder="Пароль (минимум 6 символов)" minlength="6" required style="margin-top:10px">
 <button class="btn" id="authSubmit" style="width:100%;margin-top:14px">Войти</button>
 </form>
-
 <form id="otpForm" class="hidden">
 <input id="otpCode" class="field" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Код из письма" required>
 <button class="btn" style="width:100%;margin-top:12px">Подтвердить почту</button>
 </form>
-
 <button class="btn secondary" id="googleButton" style="width:100%;margin-top:10px">Продолжить с Google</button>
 <div id="authMessage" class="auth-message"></div>
 <p id="switchText" class="muted">Нет аккаунта? <button class="auth-switch" id="switchMode">Зарегистрироваться</button></p>
@@ -287,6 +289,7 @@ main{padding:18px 13px 100px}
 
 const SUPABASE_URL = "https://xgovpuwoxosvujkifhxj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_yc77RVLqT52ahlIK9SBP2A_DXbnmoSk";
+const OAUTH_REDIRECT = "https://lootpay-pay.vercel.app/";
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
@@ -297,24 +300,22 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   }
 });
 
-const OAUTH_REDIRECT = "https://lootpay-pay.vercel.app/";
-
 const games = [
-  ["Roblox","🎮"],
-  ["Brawl Stars","⭐"],
-  ["Minecraft","⛏️"],
-  ["Fortnite","🪂"],
+  ["Roblox","🎮","https://upload.wikimedia.org/wikipedia/commons/7/7e/Roblox_Logo_2022.jpg"],
+  ["Brawl Stars","⭐","https://upload.wikimedia.org/wikipedia/en/4/4b/Brawl_Stars.png"],
+  ["Minecraft","⛏️","https://upload.wikimedia.org/wikipedia/en/5/51/Minecraft_cover.png"],
+  ["Fortnite","🪂","https://upload.wikimedia.org/wikipedia/commons/0/09/Fortnite_logo.svg"],
   ["PUBG Mobile","🎯","https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/578080/header.jpg"],
-  ["Standoff 2","🎯"],
+  ["Standoff 2","🎯","https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1364020/header.jpg"],
   ["Counter-Strike 2","💣","https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/730/header.jpg"],
   ["Dota 2","🛡️","https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570/header.jpg"],
-  ["Valorant","⚡"],
-  ["Free Fire","🔥"],
-  ["Mobile Legends","⚔️"],
-  ["Genshin Impact","🌌"],
-  ["Honkai: Star Rail","🚄"],
-  ["Clash Royale","👑"],
-  ["Growtopia","🌱"]
+  ["Valorant","⚡","https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800"],
+  ["Free Fire","🔥","https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800"],
+  ["Mobile Legends","⚔️","https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800"],
+  ["Genshin Impact","🌌","https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800"],
+  ["Honkai: Star Rail","🚄","https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=800"],
+  ["Clash Royale","👑","https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800"],
+  ["Growtopia","🌱","https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/263400/header.jpg"]
 ];
 
 const places = [
@@ -350,11 +351,9 @@ function showPage(id) {
   document.querySelectorAll(".page").forEach(p =>
     p.classList.toggle("active", p.id === id)
   );
-
   document.querySelectorAll(".nav button").forEach(b =>
     b.classList.toggle("active", b.dataset.page === id)
   );
-
   if (id === "searchPage") loadListings("searchResults");
   if (id === "profilePage") loadProfile();
   if (id === "chatsPage") loadChats();
@@ -367,11 +366,9 @@ document.querySelectorAll(".nav button").forEach(b => {
 function fillSelect(id, includeAll = false) {
   const el = $(id);
   if (!el) return;
-
   const first = includeAll
     ? '<option value="">Все игры</option>'
     : '<option value="">Выбери игру</option>';
-
   el.innerHTML = first +
     games.map(g => `<option>${esc(g[0])}</option>`).join("");
 }
@@ -380,7 +377,6 @@ fillSelect("filterGame", true);
 
 function fillPlaces(id, all = false) {
   const el = $(id);
-
   el.innerHTML =
     (all
       ? '<option value="">Все плейсы Roblox</option>'
@@ -394,7 +390,7 @@ fillPlaces("sellPlace");
 function renderGamePicker() {
   $("gamePicker").innerHTML = games.map(g => {
     const art = g[2]
-      ? `<img src="${g[2]}" alt="${esc(g[0])}" onerror="this.style.display='none'">`
+      ? `<img src="${esc(g[2])}" alt="${esc(g[0])}" onerror="this.style.display='none';this.parentElement.textContent='${g[1]}'">`
       : g[1];
 
     return `
@@ -405,23 +401,59 @@ function renderGamePicker() {
   }).join("");
 
   document.querySelectorAll(".game-card").forEach(btn => {
-  btn.onclick = () => {
-    const game = btn.dataset.game;
-    $("sellGame").value = game;
+    btn.onclick = () => {
+      const game = btn.dataset.game;
+      $("sellGame").value = game;
 
-    document.querySelectorAll(".game-card").forEach(x =>
-      x.classList.remove("selected")
-    );
+      document.querySelectorAll(".game-card").forEach(x =>
+        x.classList.remove("selected")
+      );
 
-    btn.classList.add("selected");
+      btn.classList.add("selected");
 
-    const isRoblox = game === "Roblox";
-    $("sellPlaceBlock").classList.toggle("hidden", !isRoblox);
+      const isRoblox = game === "Roblox";
+      $("sellPlaceBlock").classList.toggle("hidden", !isRoblox);
 
-    if (!isRoblox) $("sellPlace").value = "";
-  };
-});
+      if (!isRoblox) $("sellPlace").value = "";
+    };
+  });
 }
+
+/* Выбор и предпросмотр фотографии товара */
+$("sellImageFile").addEventListener("change", () => {
+  const file = $("sellImageFile").files[0];
+
+  if (!file) {
+    $("sellImagePreview").classList.add("hidden");
+    $("sellPreviewImg").src = "";
+    $("photoUploadText").textContent = "＋ Выбрать фотографию из галереи";
+    return;
+  }
+
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    alert("Выбери фотографию JPG, PNG или WEBP.");
+    $("sellImageFile").value = "";
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert("Фотография должна быть не больше 5 МБ.");
+    $("sellImageFile").value = "";
+    return;
+  }
+
+  const previewUrl = URL.createObjectURL(file);
+  $("sellPreviewImg").src = previewUrl;
+  $("sellImagePreview").classList.remove("hidden");
+  $("photoUploadText").textContent = "Фотография выбрана: " + file.name;
+});
+
+$("removeSellImage").onclick = () => {
+  $("sellImageFile").value = "";
+  $("sellPreviewImg").src = "";
+  $("sellImagePreview").classList.add("hidden");
+  $("photoUploadText").textContent = "＋ Выбрать фотографию из галереи";
+};
 
 function openAuth(mode) {
   authMode = mode;
@@ -447,7 +479,6 @@ function openAuth(mode) {
     mode === "signup" ? "Получить код на почту" : "Войти";
 
   $("switchText").classList.remove("hidden");
-
   $("switchText").innerHTML =
     (mode === "signup" ? "Уже есть аккаунт? " : "Нет аккаунта? ") +
     '<button class="auth-switch" id="switchMode">' +
@@ -498,7 +529,6 @@ $("authForm").onsubmit = async e => {
       $("authForm").classList.add("hidden");
       $("otpForm").classList.remove("hidden");
       $("switchText").classList.add("hidden");
-
       msg.textContent = "Код отправлен на почту. Введи его выше.";
     } else {
       const { data, error } = await db.auth.signInWithPassword({
@@ -507,7 +537,6 @@ $("authForm").onsubmit = async e => {
       });
 
       if (error) throw error;
-
       await updateAccount(data.user);
       closeAuth();
     }
@@ -521,7 +550,6 @@ $("authForm").onsubmit = async e => {
 
 $("otpForm").onsubmit = async e => {
   e.preventDefault();
-
   const msg = $("authMessage");
 
   try {
@@ -535,7 +563,6 @@ $("otpForm").onsubmit = async e => {
 
     await updateAccount(data.user);
     msg.textContent = "Почта подтверждена! Аккаунт готов.";
-
     setTimeout(closeAuth, 900);
   } catch (err) {
     msg.style.color = "var(--danger)";
@@ -557,9 +584,7 @@ $("googleButton").onclick = async () => {
       provider: "google",
       options: {
         redirectTo: OAUTH_REDIRECT,
-        queryParams: {
-          prompt: "select_account"
-        }
+        queryParams: { prompt: "select_account" }
       }
     });
 
@@ -585,7 +610,6 @@ async function updateAccount(user) {
   if (!currentUser) {
     profileCache = null;
   } else {
-    // Не блокируем вход ожиданием базы данных.
     ensureProfile().catch(err => console.warn("Профиль:", err));
   }
 
@@ -646,7 +670,7 @@ async function getProfile() {
 
 function productCard(x, own = false) {
   const image = x.image_url
-    ? `<img src="${esc(x.image_url)}" alt="">`
+    ? `<img src="${esc(x.image_url)}" alt="Фотография товара" loading="lazy">`
     : '<div style="height:130px;display:grid;place-items:center;background:#201d29;font-size:38px">🎮</div>';
 
   return `
@@ -739,7 +763,7 @@ $("resetSearch").onclick = () => {
   loadListings("searchResults");
 };
 
-
+/* Создание объявления с обязательной фотографией */
 $("listingForm").onsubmit = async e => {
   e.preventDefault();
 
@@ -749,24 +773,34 @@ $("listingForm").onsubmit = async e => {
   }
 
   const msg = $("sellMessage");
-  const btn = $("listingForm").querySelector('button[type="submit"], button:not([type])');
+  const btn = $("publishButton");
 
   btn.disabled = true;
   msg.style.color = "var(--muted)";
-  msg.textContent = "ИИ проверяет объявление...";
+  msg.textContent = "Подготавливаем объявление...";
+
+  let uploadedPath = null;
 
   try {
     const game = $("sellGame").value;
+    const file = $("sellImageFile").files[0];
 
-    if (!game) {
-      throw Error("Сначала выбери игру.");
+    if (!game) throw Error("Сначала выбери игру.");
+    if (!file) throw Error("Обязательно загрузи фотографию товара.");
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      throw Error("Подойдут только JPG, PNG или WEBP.");
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      throw Error("Фотография должна быть не больше 5 МБ.");
     }
 
     const title = $("sellTitle").value.trim();
     const description = $("sellDescription").value.trim();
     const category = $("sellCategory").value;
     const price = Number($("sellPrice").value);
-    const image_url = $("sellImage").value.trim() || null;
+
     const place = game === "Roblox"
       ? ($("sellPlace").value || null)
       : null;
@@ -779,18 +813,43 @@ $("listingForm").onsubmit = async e => {
       throw Error("Укажи корректную цену.");
     }
 
-    // Получаем актуальный токен пользователя
-    const { data, error } = await db.auth.getSession();
+    const { data: sessionData, error: sessionError } =
+      await db.auth.getSession();
 
-    if (error) throw error;
+    if (sessionError) throw sessionError;
 
-    const token = data.session?.access_token;
+    const token = sessionData.session?.access_token;
+    if (!token) throw Error("Сессия истекла. Войди заново.");
 
-    if (!token) {
-      throw Error("Сессия истекла. Войди заново.");
-    }
+    /* Загружаем фотографию */
+    msg.textContent = "Загружаем фотографию...";
 
-    // Отправляем объявление серверному модератору
+    const extension = file.type === "image/jpeg" ? "jpg" :
+      file.type === "image/png" ? "png" : "webp";
+
+    const path = currentUser.id + "/" + Date.now() + "_" +
+      Math.random().toString(36).slice(2) + "." + extension;
+
+    const { error: uploadError } = await db.storage
+      .from("listing-images")
+      .upload(path, file, {
+        upsert: false,
+        contentType: file.type
+      });
+
+    if (uploadError) throw uploadError;
+
+    uploadedPath = path;
+
+    const { data: imageData } = db.storage
+      .from("listing-images")
+      .getPublicUrl(path);
+
+    const image_url = imageData.publicUrl;
+
+    /* Отправляем объявление на модерацию */
+    msg.textContent = "ИИ проверяет объявление...";
+
     const response = await fetch("/api/moderate-listing", {
       method: "POST",
       headers: {
@@ -818,10 +877,14 @@ $("listingForm").onsubmit = async e => {
       throw Error("Не удалось сохранить объявление.");
     }
 
+    /* Очищаем форму */
     $("listingForm").reset();
     $("sellGame").value = "";
     $("sellPlaceBlock").classList.add("hidden");
     $("sellPlace").value = "";
+    $("sellPreviewImg").src = "";
+    $("sellImagePreview").classList.add("hidden");
+    $("photoUploadText").textContent = "＋ Выбрать фотографию из галереи";
 
     document.querySelectorAll(".game-card").forEach(x =>
       x.classList.remove("selected")
@@ -838,11 +901,22 @@ $("listingForm").onsubmit = async e => {
       msg.textContent = "Объявление отправлено на ручную проверку.";
     }
 
+    uploadedPath = null;
     await loadListings("myListings", true);
 
   } catch (err) {
     msg.style.color = "var(--danger)";
     msg.textContent = err.message || "Ошибка отправки объявления.";
+
+    if (uploadedPath && currentUser) {
+      const { error: removeError } = await db.storage
+        .from("listing-images")
+        .remove([uploadedPath]);
+
+      if (removeError) {
+        console.warn("Не удалось удалить неиспользованное фото:", removeError);
+      }
+    }
   } finally {
     btn.disabled = false;
   }
@@ -1122,10 +1196,8 @@ function closeAllOnBackdrop() {
 async function initialize() {
   renderGamePicker();
 
-  // Сначала подписываемся на изменения авторизации.
   if (!authListener) {
     const { data } = db.auth.onAuthStateChange((event, session) => {
-      // Не выполняем запросы Supabase прямо внутри обработчика.
       setTimeout(() => {
         updateAccount(session?.user || null);
 
@@ -1139,13 +1211,11 @@ async function initialize() {
   }
 
   try {
-    // Восстанавливаем сохранённую сессию, в том числе после Google.
     const { data, error } = await db.auth.getSession();
 
     if (error) throw error;
 
     await updateAccount(data.session?.user || null);
-
     await loadListings("searchResults");
   } catch (e) {
     console.error("Ошибка запуска:", e);
