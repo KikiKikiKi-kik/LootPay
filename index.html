@@ -286,695 +286,823 @@ main{padding:18px 13px 100px}
 <script>
 "use strict";
 
-const SUPABASE_URL="https://xgovpuwoxosvujkifhxj.supabase.co";
-const SUPABASE_KEY="sb_publishable_yc77RVLqT52ahlIK9SBP2A_DXbnmoSk";
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const SUPABASE_URL = "https://xgovpuwoxosvujkifhxj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_yc77RVLqT52ahlIK9SBP2A_DXbnmoSk";
 
-const games=[
-["Roblox","🎮"],
-["Brawl Stars","⭐"],
-["Minecraft","⛏️"],
-["Fortnite","🪂"],
-["PUBG Mobile","🎯","https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/578080/header.jpg"],
-["Standoff 2","🎯"],
-["Counter-Strike 2","💣","https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/730/header.jpg"],
-["Dota 2","🛡️","https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570/header.jpg"],
-["Valorant","⚡"],
-["Free Fire","🔥"],
-["Mobile Legends","⚔️"],
-["Genshin Impact","🌌"],
-["Honkai: Star Rail","🚄"],
-["Clash Royale","👑"],
-["Growtopia","🌱"]
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: "pkce"
+  }
+});
+
+const OAUTH_REDIRECT = "https://lootpay-pay.vercel.app/";
+
+const games = [
+  ["Roblox","🎮"],
+  ["Brawl Stars","⭐"],
+  ["Minecraft","⛏️"],
+  ["Fortnite","🪂"],
+  ["PUBG Mobile","🎯","https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/578080/header.jpg"],
+  ["Standoff 2","🎯"],
+  ["Counter-Strike 2","💣","https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/730/header.jpg"],
+  ["Dota 2","🛡️","https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570/header.jpg"],
+  ["Valorant","⚡"],
+  ["Free Fire","🔥"],
+  ["Mobile Legends","⚔️"],
+  ["Genshin Impact","🌌"],
+  ["Honkai: Star Rail","🚄"],
+  ["Clash Royale","👑"],
+  ["Growtopia","🌱"]
 ];
 
-const places=[
-"Укради брейнрота",
-"Grow a Garden",
-"Blox Fruits",
-"Adopt Me!",
-"Pet Simulator 99",
-"Murder Mystery 2",
-"Brookhaven",
-"Blade Ball",
-"Другой плейс"
+const places = [
+  "Укради брейнрота",
+  "Grow a Garden",
+  "Blox Fruits",
+  "Adopt Me!",
+  "Pet Simulator 99",
+  "Murder Mystery 2",
+  "Brookhaven",
+  "Blade Ball",
+  "Другой плейс"
 ];
 
-let currentUser=null;
-let authMode="login";
-let otpEmail="";
-let activeChat=null;
-let profileCache=null;
+let currentUser = null;
+let authMode = "login";
+let otpEmail = "";
+let activeChat = null;
+let profileCache = null;
+let authListener = null;
 
-const $=id=>document.getElementById(id);
+const $ = id => document.getElementById(id);
 
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({
-"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
 }[c]));
 
-function showPage(id){
-document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));
-document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===id));
+function showPage(id) {
+  document.querySelectorAll(".page").forEach(p =>
+    p.classList.toggle("active", p.id === id)
+  );
 
-if(id==="searchPage")loadListings("searchResults");
-if(id==="profilePage")loadProfile();
-if(id==="chatsPage")loadChats();
+  document.querySelectorAll(".nav button").forEach(b =>
+    b.classList.toggle("active", b.dataset.page === id)
+  );
+
+  if (id === "searchPage") loadListings("searchResults");
+  if (id === "profilePage") loadProfile();
+  if (id === "chatsPage") loadChats();
 }
 
-document.querySelectorAll(".nav button").forEach(b=>{
-b.addEventListener("click",()=>showPage(b.dataset.page));
+document.querySelectorAll(".nav button").forEach(b => {
+  b.addEventListener("click", () => showPage(b.dataset.page));
 });
 
-function fillSelect(id,includeAll=false){
-const el=$(id);
-if(!el)return;
-const first=includeAll?'<option value="">Все игры</option>':'<option value="">Выбери игру</option>';
-el.innerHTML=first+games.map(g=>`<option>${esc(g[0])}</option>`).join("");
+function fillSelect(id, includeAll = false) {
+  const el = $(id);
+  if (!el) return;
+
+  const first = includeAll
+    ? '<option value="">Все игры</option>'
+    : '<option value="">Выбери игру</option>';
+
+  el.innerHTML = first +
+    games.map(g => `<option>${esc(g[0])}</option>`).join("");
 }
 
-fillSelect("filterGame",true);
+fillSelect("filterGame", true);
 
-function fillPlaces(id,all=false){
-const el=$(id);
-el.innerHTML=(all?'<option value="">Все плейсы Roblox</option>':'<option value="">Не выбран</option>')+
-places.map(p=>`<option>${esc(p)}</option>`).join("");
+function fillPlaces(id, all = false) {
+  const el = $(id);
+
+  el.innerHTML =
+    (all
+      ? '<option value="">Все плейсы Roblox</option>'
+      : '<option value="">Не выбран</option>') +
+    places.map(p => `<option>${esc(p)}</option>`).join("");
 }
 
-fillPlaces("filterPlace",true);
+fillPlaces("filterPlace", true);
 fillPlaces("sellPlace");
 
-function renderGamePicker(){
-$("gamePicker").innerHTML=games.map(g=>{
-const art=g[2]
-?`<img src="${g[2]}" alt="${esc(g[0])}" onerror="this.style.display='none'">`
-:g[1];
+function renderGamePicker() {
+  $("gamePicker").innerHTML = games.map(g => {
+    const art = g[2]
+      ? `<img src="${g[2]}" alt="${esc(g[0])}" onerror="this.style.display='none'">`
+      : g[1];
 
-return `<button type="button" class="game-card" data-game="${esc(g[0])}">
-<div class="game-art">${art}</div>
-<div class="game-card-name">${esc(g[0])}</div>
-</button>`;
-}).join("");
+    return `
+      <button type="button" class="game-card" data-game="${esc(g[0])}">
+        <div class="game-art">${art}</div>
+        <div class="game-card-name">${esc(g[0])}</div>
+      </button>`;
+  }).join("");
 
-document.querySelectorAll(".game-card").forEach(btn=>{
-btn.addEventListener("click",()=>{
-const selectedGame=btn.dataset.game;
+  document.querySelectorAll(".game-card").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const game = btn.dataset.game;
+      $("sellGame").value = game;
 
-$("sellGame").value=selectedGame;
+      document.querySelectorAll(".game-card").forEach(x =>
+        x.classList.remove("selected")
+      );
 
-document.querySelectorAll(".game-card").forEach(x=>x.classList.remove("selected"));
-btn.classList.add("selected");
+      btn.classList.add("selected");
 
-const isRoblox=selectedGame==="Roblox";
+      const isRoblox = game === "Roblox";
+      $("sellPlaceBlock").classList.toggle("hidden", !isRoblox);
 
-$("sellPlaceBlock").classList.toggle("hidden",!isRoblox);
-
-if(!isRoblox){
-$("sellPlace").value="";
-}
-});
-});
-}
-
-function openAuth(mode){
-authMode=mode;
-$("authModal").style.display="flex";
-$("authForm").classList.remove("hidden");
-$("otpForm").classList.add("hidden");
-$("authMessage").textContent="";
-$("authForm").reset();
-$("username").classList.toggle("hidden",mode!=="signup");
-$("username").required=mode==="signup";
-$("password").required=true;
-$("authTitle").textContent=mode==="signup"?"Регистрация":"Вход";
-$("authDescription").textContent=mode==="signup"?"Создай аккаунт LootPay.":"Войди в свой аккаунт LootPay.";
-$("authSubmit").textContent=mode==="signup"?"Получить код на почту":"Войти";
-$("switchText").classList.remove("hidden");
-
-$("switchText").innerHTML=(mode==="signup"?"Уже есть аккаунт? ":"Нет аккаунта? ")+
-'<button class="auth-switch" id="switchMode">'+
-(mode==="signup"?"Войти":"Зарегистрироваться")+"</button>";
-
-$("switchMode").onclick=()=>openAuth(authMode==="login"?"signup":"login");
+      if (!isRoblox) $("sellPlace").value = "";
+    });
+  });
 }
 
-function closeAuth(){
-$("authModal").style.display="none";
+function openAuth(mode) {
+  authMode = mode;
+  $("authModal").style.display = "flex";
+  $("authForm").classList.remove("hidden");
+  $("otpForm").classList.add("hidden");
+  $("authMessage").textContent = "";
+  $("authForm").reset();
+
+  $("username").classList.toggle("hidden", mode !== "signup");
+  $("username").required = mode === "signup";
+  $("password").required = true;
+
+  $("authTitle").textContent =
+    mode === "signup" ? "Регистрация" : "Вход";
+
+  $("authDescription").textContent =
+    mode === "signup"
+      ? "Создай аккаунт LootPay."
+      : "Войди в свой аккаунт LootPay.";
+
+  $("authSubmit").textContent =
+    mode === "signup" ? "Получить код на почту" : "Войти";
+
+  $("switchText").classList.remove("hidden");
+
+  $("switchText").innerHTML =
+    (mode === "signup" ? "Уже есть аккаунт? " : "Нет аккаунта? ") +
+    '<button class="auth-switch" id="switchMode">' +
+    (mode === "signup" ? "Войти" : "Зарегистрироваться") +
+    "</button>";
+
+  $("switchMode").onclick = () =>
+    openAuth(authMode === "login" ? "signup" : "login");
 }
 
-$("loginButton").onclick=()=>openAuth("login");
-$("authClose").onclick=closeAuth;
-
-$("authForm").onsubmit=async e=>{
-e.preventDefault();
-
-const email=$("email").value.trim();
-const password=$("password").value;
-const username=$("username").value.trim();
-const msg=$("authMessage");
-const btn=$("authSubmit");
-
-btn.disabled=true;
-msg.style.color="var(--muted)";
-msg.textContent="Подождите...";
-
-try{
-if(authMode==="signup"){
-
-if(username.length<3)throw Error("Ник должен содержать минимум 3 символа.");
-
-if(!/^[a-zA-Z0-9а-яА-ЯёЁ_-]+$/.test(username))
-throw Error("В нике используй буквы, цифры, дефис или подчёркивание.");
-
-const {error}=await db.auth.signUp({
-email,
-password,
-options:{data:{username}}
-});
-
-if(error)throw error;
-
-otpEmail=email;
-$("authForm").classList.add("hidden");
-$("otpForm").classList.remove("hidden");
-$("switchText").classList.add("hidden");
-msg.textContent="Код отправлен на почту. Введи его выше.";
-
-}else{
-
-const {data,error}=await db.auth.signInWithPassword({email,password});
-
-if(error)throw error;
-
-await updateAccount(data.user);
-closeAuth();
+function closeAuth() {
+  $("authModal").style.display = "none";
 }
 
-}catch(err){
-msg.style.color="var(--danger)";
-msg.textContent=err.message||"Ошибка авторизации";
-}finally{
-btn.disabled=false;
-}
+$("loginButton").onclick = () => openAuth("login");
+$("authClose").onclick = closeAuth;
+
+$("authForm").onsubmit = async e => {
+  e.preventDefault();
+
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  const username = $("username").value.trim();
+  const msg = $("authMessage");
+  const btn = $("authSubmit");
+
+  btn.disabled = true;
+  msg.style.color = "var(--muted)";
+  msg.textContent = "Подождите...";
+
+  try {
+    if (authMode === "signup") {
+      if (username.length < 3)
+        throw Error("Ник должен содержать минимум 3 символа.");
+
+      if (!/^[a-zA-Z0-9а-яА-ЯёЁ_-]+$/.test(username))
+        throw Error("Используй буквы, цифры, дефис или подчёркивание.");
+
+      const { error } = await db.auth.signUp({
+        email,
+        password,
+        options: { data: { username } }
+      });
+
+      if (error) throw error;
+
+      otpEmail = email;
+      $("authForm").classList.add("hidden");
+      $("otpForm").classList.remove("hidden");
+      $("switchText").classList.add("hidden");
+
+      msg.textContent = "Код отправлен на почту. Введи его выше.";
+    } else {
+      const { data, error } = await db.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      await updateAccount(data.user);
+      closeAuth();
+    }
+  } catch (err) {
+    msg.style.color = "var(--danger)";
+    msg.textContent = err.message || "Ошибка авторизации";
+  } finally {
+    btn.disabled = false;
+  }
 };
 
-$("otpForm").onsubmit=async e=>{
-e.preventDefault();
-const msg=$("authMessage");
+$("otpForm").onsubmit = async e => {
+  e.preventDefault();
 
-try{
-const {data,error}=await db.auth.verifyOtp({
-email:otpEmail,
-token:$("otpCode").value.trim(),
-type:"signup"
-});
+  const msg = $("authMessage");
 
-if(error)throw error;
+  try {
+    const { data, error } = await db.auth.verifyOtp({
+      email: otpEmail,
+      token: $("otpCode").value.trim(),
+      type: "signup"
+    });
 
-await updateAccount(data.user);
-msg.textContent="Почта подтверждена! Аккаунт готов.";
-setTimeout(closeAuth,900);
+    if (error) throw error;
 
-}catch(err){
-msg.style.color="var(--danger)";
-msg.textContent=err.message;
-}
+    await updateAccount(data.user);
+    msg.textContent = "Почта подтверждена! Аккаунт готов.";
+
+    setTimeout(closeAuth, 900);
+  } catch (err) {
+    msg.style.color = "var(--danger)";
+    msg.textContent = err.message;
+  }
 };
 
-$("googleButton").onclick=async()=>{
-const {error}=await db.auth.signInWithOAuth({
-provider:"google",
-options:{redirectTo:location.origin}
-});
+/* Google OAuth */
+$("googleButton").onclick = async () => {
+  const btn = $("googleButton");
+  const msg = $("authMessage");
 
-if(error)$("authMessage").textContent=error.message;
+  btn.disabled = true;
+  msg.style.color = "var(--muted)";
+  msg.textContent = "Открываем Google...";
+
+  try {
+    const { error } = await db.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: OAUTH_REDIRECT,
+        queryParams: {
+          prompt: "select_account"
+        }
+      }
+    });
+
+    if (error) throw error;
+  } catch (err) {
+    msg.style.color = "var(--danger)";
+    msg.textContent = "Ошибка Google: " + err.message;
+    btn.disabled = false;
+  }
 };
 
-async function updateAccount(user){
-currentUser=user||null;
+/* Обновление интерфейса аккаунта */
+async function updateAccount(user) {
+  currentUser = user || null;
 
-$("loginButton").classList.toggle("hidden",!!user);
-$("logoutButton").classList.toggle("hidden",!user);
-$("userName").textContent=user?.user_metadata?.username||user?.email||"";
+  $("loginButton").classList.toggle("hidden", !!currentUser);
+  $("logoutButton").classList.toggle("hidden", !currentUser);
 
-if(user)await ensureProfile();
-else profileCache=null;
+  $("userName").textContent = currentUser
+    ? (currentUser.user_metadata?.username || currentUser.email || "Игрок")
+    : "";
 
-if($("profilePage").classList.contains("active"))loadProfile();
+  if (!currentUser) {
+    profileCache = null;
+  } else {
+    // Не блокируем вход ожиданием базы данных.
+    ensureProfile().catch(err => console.warn("Профиль:", err));
+  }
+
+  if ($("profilePage").classList.contains("active")) {
+    loadProfile();
+  }
 }
 
-$("logoutButton").onclick=async()=>{
-const {error}=await db.auth.signOut();
+$("logoutButton").onclick = async () => {
+  const { error } = await db.auth.signOut();
 
-if(error)alert(error.message);
-else{
-await updateAccount(null);
-showPage("searchPage");
-}
+  if (error) {
+    alert(error.message);
+  } else {
+    await updateAccount(null);
+    showPage("searchPage");
+  }
 };
 
-async function ensureProfile(){
-if(!currentUser)return;
+async function ensureProfile() {
+  if (!currentUser) return;
 
-const username=currentUser.user_metadata?.username||currentUser.email.split("@")[0];
+  const user = currentUser;
+  const username =
+    user.user_metadata?.username ||
+    user.email?.split("@")[0] ||
+    "Игрок";
 
-const {data,error}=await db.from("profiles")
-.select("*").eq("id",currentUser.id).maybeSingle();
+  const { data, error } = await db.from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
 
-if(error){console.warn(error);return;}
+  if (error) throw error;
+  if (data) return;
 
-if(!data){
-const {error:ie}=await db.from("profiles").insert({
-id:currentUser.id,
-username
-});
-if(ie)console.warn(ie);
-}
-}
+  const { error: insertError } = await db.from("profiles").insert({
+    id: user.id,
+    username
+  });
 
-async function getProfile(){
-if(!currentUser)return null;
-
-const {data,error}=await db.from("profiles")
-.select("*").eq("id",currentUser.id).maybeSingle();
-
-if(error)throw error;
-
-profileCache=data;
-return data;
+  if (insertError) throw insertError;
 }
 
-function productCard(x,own=false){
-const image=x.image_url
-?`<img src="${esc(x.image_url)}" alt="">`
-:'<div style="height:130px;display:grid;place-items:center;background:#201d29;font-size:38px">🎮</div>';
+async function getProfile() {
+  if (!currentUser) return null;
 
-return `<article class="product">
-${image}
-<div class="product-body">
-<div class="product-title">${esc(x.title)}</div>
-<div class="price">${Number(x.price).toLocaleString("ru-RU")} ₽</div>
-<div class="meta">
-${esc(x.game)}${x.place?" · "+esc(x.place):""} · ${esc(x.category||"Другое")}<br>
-${esc(x.status==="pending"?"На проверке":x.status==="rejected"?"Отклонено":"Опубликовано")}
-</div>
-${own
-?`<button class="btn secondary small" onclick="deleteListing('${x.id}')">Удалить</button>`
-:`<button class="btn small" onclick="startChat('${x.seller_id}','${x.id}')">Написать продавцу</button>`}
-</div>
-</article>`;
+  const { data, error } = await db.from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  profileCache = data;
+  return data;
 }
 
-async function loadListings(target,own=false){
-const root=$(target);
-root.innerHTML='<div class="empty">Загружаем предложения...</div>';
+function productCard(x, own = false) {
+  const image = x.image_url
+    ? `<img src="${esc(x.image_url)}" alt="">`
+    : '<div style="height:130px;display:grid;place-items:center;background:#201d29;font-size:38px">🎮</div>';
 
-try{
-let q=db.from("listings").select("*")
-.order("created_at",{ascending:false}).limit(60);
-
-if(own){
-if(!currentUser){
-root.innerHTML='<div class="empty">Войди, чтобы увидеть объявления.</div>';
-return;
-}
-q=q.eq("seller_id",currentUser.id);
-}else{
-q=q.eq("status","approved");
-}
-
-if(target==="searchResults"){
-const game=$("filterGame").value;
-const cat=$("filterCategory").value;
-const place=$("filterPlace").value;
-const term=$("searchText").value.trim();
-
-if(game)q=q.eq("game",game);
-if(cat)q=q.eq("category",cat);
-if(place)q=q.eq("place",place);
-
-if(term){
-const safeTerm=term.replace(/[,%()]/g," ");
-q=q.or(`title.ilike.%${safeTerm}%,description.ilike.%${safeTerm}%`);
+  return `
+    <article class="product">
+      ${image}
+      <div class="product-body">
+        <div class="product-title">${esc(x.title)}</div>
+        <div class="price">${Number(x.price).toLocaleString("ru-RU")} ₽</div>
+        <div class="meta">
+          ${esc(x.game)}${x.place ? " · " + esc(x.place) : ""}
+          · ${esc(x.category || "Другое")}<br>
+          ${esc(x.status === "pending" ? "На проверке" :
+            x.status === "rejected" ? "Отклонено" : "Опубликовано")}
+        </div>
+        ${own
+          ? `<button class="btn secondary small" onclick="deleteListing('${x.id}')">Удалить</button>`
+          : `<button class="btn small" onclick="startChat('${x.seller_id}','${x.id}')">Написать продавцу</button>`}
+      </div>
+    </article>`;
 }
 
-const sort=$("sort").value;
+async function loadListings(target, own = false) {
+  const root = $(target);
+  root.innerHTML = '<div class="empty">Загружаем предложения...</div>';
 
-if(sort==="cheap")q=q.order("price",{ascending:true});
-if(sort==="expensive")q=q.order("price",{ascending:false});
+  try {
+    let q = db.from("listings").select("*")
+      .order("created_at", { ascending: false })
+      .limit(60);
+
+    if (own) {
+      if (!currentUser) {
+        root.innerHTML = '<div class="empty">Войди, чтобы увидеть объявления.</div>';
+        return;
+      }
+      q = q.eq("seller_id", currentUser.id);
+    } else {
+      q = q.eq("status", "approved");
+    }
+
+    if (target === "searchResults") {
+      const game = $("filterGame").value;
+      const cat = $("filterCategory").value;
+      const place = $("filterPlace").value;
+      const term = $("searchText").value.trim();
+
+      if (game) q = q.eq("game", game);
+      if (cat) q = q.eq("category", cat);
+      if (place) q = q.eq("place", place);
+
+      if (term) {
+        const safeTerm = term.replace(/[,%()]/g, " ");
+        q = q.or(`title.ilike.%${safeTerm}%,description.ilike.%${safeTerm}%`);
+      }
+
+      const sort = $("sort").value;
+      if (sort === "cheap") q = q.order("price", { ascending: true });
+      if (sort === "expensive") q = q.order("price", { ascending: false });
+    }
+
+    const { data, error } = await q;
+    if (error) throw error;
+
+    root.innerHTML = data.length
+      ? data.map(x => productCard(x, own)).join("")
+      : '<div class="empty">Пока ничего не найдено.</div>';
+
+    if (target === "searchResults") {
+      $("resultCount").textContent = data.length + " предложений";
+    }
+  } catch (err) {
+    root.innerHTML =
+      '<div class="empty">Не удалось загрузить.<br>' +
+      esc(err.message) + '</div>';
+  }
 }
 
-const {data,error}=await q;
-if(error)throw error;
+$("searchBtn").onclick = () => loadListings("searchResults");
 
-root.innerHTML=data.length
-?data.map(x=>productCard(x,own)).join("")
-:'<div class="empty">Пока ничего не найдено.</div>';
-
-if(target==="searchResults"){
-$("resultCount").textContent=data.length+" предложений";
-}
-
-}catch(err){
-root.innerHTML='<div class="empty">Не удалось загрузить. Проверь SQL-настройки Supabase.<br>'+esc(err.message)+'</div>';
-}
-}
-
-$("searchBtn").onclick=()=>loadListings("searchResults");
-
-$("searchText").onkeydown=e=>{
-if(e.key==="Enter")loadListings("searchResults");
+$("searchText").onkeydown = e => {
+  if (e.key === "Enter") loadListings("searchResults");
 };
 
-$("resetSearch").onclick=()=>{
-$("filterGame").value="";
-$("filterCategory").value="";
-$("filterPlace").value="";
-$("searchText").value="";
-$("sort").value="new";
-loadListings("searchResults");
+$("resetSearch").onclick = () => {
+  $("filterGame").value = "";
+  $("filterCategory").value = "";
+  $("filterPlace").value = "";
+  $("searchText").value = "";
+  $("sort").value = "new";
+  loadListings("searchResults");
 };
 
-$("listingForm").onsubmit=async e=>{
-e.preventDefault();
+$("listingForm").onsubmit = async e => {
+  e.preventDefault();
 
-if(!currentUser){
-openAuth("login");
-return;
-}
+  if (!currentUser) {
+    openAuth("login");
+    return;
+  }
 
-const msg=$("sellMessage");
-msg.textContent="Отправляем...";
+  const msg = $("sellMessage");
+  msg.textContent = "Отправляем...";
 
-try{
-const selectedGame=$("sellGame").value;
+  try {
+    const game = $("sellGame").value;
+    if (!game) throw Error("Сначала выбери игру.");
 
-if(!selectedGame)throw Error("Сначала выбери игру.");
+    const row = {
+      seller_id: currentUser.id,
+      title: $("sellTitle").value.trim(),
+      description: $("sellDescription").value.trim(),
+      game,
+      place: game === "Roblox" ? ($("sellPlace").value || null) : null,
+      category: $("sellCategory").value,
+      price: Number($("sellPrice").value),
+      image_url: $("sellImage").value.trim() || null,
+      status: "pending"
+    };
 
-const isRoblox=selectedGame==="Roblox";
+    const { error } = await db.from("listings").insert(row);
+    if (error) throw error;
 
-const row={
-seller_id:currentUser.id,
-title:$("sellTitle").value.trim(),
-description:$("sellDescription").value.trim(),
-game:selectedGame,
-place:isRoblox?($("sellPlace").value||null):null,
-category:$("sellCategory").value,
-price:Number($("sellPrice").value),
-image_url:$("sellImage").value.trim()||null,
-status:"pending"
+    $("listingForm").reset();
+    $("sellGame").value = "";
+    $("sellPlaceBlock").classList.add("hidden");
+    $("sellPlace").value = "";
+
+    document.querySelectorAll(".game-card").forEach(x =>
+      x.classList.remove("selected")
+    );
+
+    msg.style.color = "var(--green)";
+    msg.textContent = "Объявление отправлено на проверку!";
+  } catch (err) {
+    msg.style.color = "var(--danger)";
+    msg.textContent = err.message;
+  }
 };
 
-const {error}=await db.from("listings").insert(row);
-if(error)throw error;
+async function deleteListing(id) {
+  if (!currentUser || !confirm("Удалить объявление?")) return;
 
-$("listingForm").reset();
-$("sellGame").value="";
-$("sellPlaceBlock").classList.add("hidden");
-$("sellPlace").value="";
+  const { error } = await db.from("listings")
+    .delete()
+    .eq("id", id)
+    .eq("seller_id", currentUser.id);
 
-document.querySelectorAll(".game-card").forEach(x=>x.classList.remove("selected"));
-
-msg.style.color="var(--green)";
-msg.textContent="Объявление отправлено на проверку!";
-
-}catch(err){
-msg.style.color="var(--danger)";
-msg.textContent=err.message;
+  if (error) alert(error.message);
+  else loadProfile();
 }
+
+async function loadProfile() {
+  if (!currentUser) {
+    $("profileName").textContent = "Гость";
+    $("profileEmail").textContent = "Войди, чтобы настроить профиль";
+    $("profileAvatar").src = "";
+    $("myListings").innerHTML =
+      '<div class="empty">Войди, чтобы увидеть свои объявления.</div>';
+
+    const loginBtn = document.createElement("button");
+    loginBtn.className = "btn";
+    loginBtn.textContent = "Войти";
+    loginBtn.onclick = () => openAuth("login");
+
+    $("profileControls").replaceChildren(loginBtn);
+    return;
+  }
+
+  try {
+    const p = await getProfile();
+
+    $("profileName").textContent =
+      p?.username || currentUser.user_metadata?.username || "Игрок";
+
+    $("profileEmail").textContent = currentUser.email || "";
+    $("profileAvatar").src =
+      p?.avatar_url ||
+      "https://placehold.co/160x160/24202e/ffffff?text=LP";
+
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn";
+    editBtn.textContent = "Изменить профиль";
+    editBtn.onclick = openEditProfile;
+
+    $("profileControls").replaceChildren(editBtn);
+    $("myListingsTitle").textContent = "Мои объявления";
+
+    await loadListings("myListings", true);
+  } catch (e) {
+    $("myListings").innerHTML =
+      '<div class="empty">' + esc(e.message) + '</div>';
+  }
+}
+
+function openEditProfile() {
+  $("editProfileModal").style.display = "flex";
+  $("editUsername").value =
+    profileCache?.username ||
+    currentUser?.user_metadata?.username ||
+    "";
+}
+
+function closeModal(id) {
+  $(id).style.display = "none";
+}
+
+$("profileForm").onsubmit = async e => {
+  e.preventDefault();
+
+  const msg = $("profileMessage");
+
+  try {
+    let avatar_url = profileCache?.avatar_url || null;
+    const file = $("avatarFile").files[0];
+
+    if (file) {
+      if (file.size > 3 * 1024 * 1024)
+        throw Error("Аватарка должна быть не больше 3 МБ.");
+
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
+        throw Error("Подойдут JPG, PNG или WEBP.");
+
+      const path = currentUser.id + "/" + Date.now() + "_" +
+        file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+      const { error: upErr } = await db.storage.from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      if (upErr) throw upErr;
+
+      avatar_url = db.storage.from("avatars")
+        .getPublicUrl(path).data.publicUrl;
+    }
+
+    const username = $("editUsername").value.trim();
+    if (username.length < 3)
+      throw Error("Ник должен быть не короче 3 символов.");
+
+    const { error } = await db.from("profiles")
+      .update({ username, avatar_url })
+      .eq("id", currentUser.id);
+
+    if (error) throw error;
+
+    profileCache = { ...profileCache, username, avatar_url };
+    msg.textContent = "Профиль сохранён.";
+
+    await loadProfile();
+  } catch (err) {
+    msg.style.color = "var(--danger)";
+    msg.textContent = err.message;
+  }
 };
 
-async function deleteListing(id){
-if(!confirm("Удалить объявление?"))return;
+async function startChat(sellerId, listingId) {
+  if (!currentUser) {
+    openAuth("login");
+    return;
+  }
 
-const {error}=await db.from("listings")
-.delete().eq("id",id).eq("seller_id",currentUser.id);
+  if (sellerId === currentUser.id) {
+    alert("Это твоё объявление.");
+    return;
+  }
 
-if(error)alert(error.message);
-else loadProfile();
+  showPage("chatsPage");
+
+  try {
+    const { error } = await db.from("messages").insert({
+      sender_id: currentUser.id,
+      recipient_id: sellerId,
+      listing_id: listingId,
+      body: "Здравствуйте! Интересует ваше объявление."
+    });
+
+    if (error) throw error;
+    await loadChats();
+  } catch (e) {
+    alert("Не удалось начать чат: " + e.message);
+  }
 }
 
-async function loadProfile(){
-if(!currentUser){
-$("profileName").textContent="Гость";
-$("profileEmail").textContent="Войди, чтобы настроить профиль";
-$("profileAvatar").src="";
-$("myListings").innerHTML='<div class="empty">Войди, чтобы увидеть свои объявления.</div>';
+async function loadChats() {
+  if (!currentUser) {
+    $("chatList").innerHTML =
+      '<div class="empty">Войди, чтобы пользоваться чатами.</div>';
+    return;
+  }
 
-const loginBtn=document.createElement("button");
-loginBtn.className="btn";
-loginBtn.textContent="Войти";
-loginBtn.onclick=()=>openAuth("login");
+  try {
+    const { data, error } = await db.from("messages")
+      .select("*")
+      .or(`sender_id.eq.${currentUser.id},recipient_id.eq.${currentUser.id}`)
+      .order("created_at", { ascending: false })
+      .limit(250);
 
-$("profileControls").replaceChildren(loginBtn);
-return;
+    if (error) throw error;
+
+    const latest = new Map();
+
+    data.forEach(m => {
+      const other = m.sender_id === currentUser.id
+        ? m.recipient_id
+        : m.sender_id;
+
+      const key = [other, m.listing_id || ""].join("|");
+
+      if (!latest.has(key)) {
+        latest.set(key, { other, listing_id: m.listing_id, last: m });
+      }
+    });
+
+    const chats = [...latest.values()];
+
+    $("chatList").innerHTML = chats.length
+      ? chats.map(c => `
+        <button class="chat-item ${
+          activeChat && activeChat.key === [c.other,c.listing_id || ""].join("|")
+            ? "active" : ""
+        }" onclick="openChat('${c.other}','${c.listing_id || ""}')">
+          <b>Пользователь ${c.other.slice(0,7)}</b>
+          <div class="meta">${esc(c.last.body.slice(0,65))}</div>
+        </button>`).join("")
+      : '<div class="empty">Пока нет переписок.</div>';
+
+    if (activeChat) await refreshMessages();
+  } catch (e) {
+    $("chatList").innerHTML =
+      '<div class="empty">' + esc(e.message) + '</div>';
+  }
 }
 
-try{
-const p=await getProfile();
+async function openChat(other, listing) {
+  activeChat = {
+    other,
+    listing,
+    key: [other, listing].join("|")
+  };
 
-$("profileName").textContent=p?.username||currentUser.user_metadata?.username||"Игрок";
-$("profileEmail").textContent=currentUser.email;
-$("profileAvatar").src=p?.avatar_url||"https://placehold.co/160x160/24202e/ffffff?text=LP";
+  $("chatHeading").textContent = "Переписка";
+  $("sendForm").classList.remove("hidden");
 
-const editBtn=document.createElement("button");
-editBtn.className="btn";
-editBtn.textContent="Изменить профиль";
-editBtn.onclick=openEditProfile;
-
-$("profileControls").replaceChildren(editBtn);
-
-$("myListingsTitle").textContent="Мои объявления";
-await loadListings("myListings",true);
-
-}catch(e){
-$("myListings").innerHTML='<div class="empty">'+esc(e.message)+'</div>';
-}
+  await refreshMessages();
+  await loadChats();
 }
 
-function openEditProfile(){
-$("editProfileModal").style.display="flex";
-$("editUsername").value=profileCache?.username||currentUser?.user_metadata?.username||"";
+async function refreshMessages() {
+  if (!activeChat || !currentUser) return;
+
+  const { data, error } = await db.from("messages")
+    .select("*")
+    .or(
+      `and(sender_id.eq.${currentUser.id},recipient_id.eq.${activeChat.other}),and(sender_id.eq.${activeChat.other},recipient_id.eq.${currentUser.id})`
+    )
+    .order("created_at", { ascending: true })
+    .limit(150);
+
+  if (error) {
+    $("messageList").innerHTML =
+      '<div class="empty">' + esc(error.message) + '</div>';
+    return;
+  }
+
+  const filtered = data.filter(m =>
+    (m.listing_id || "") === (activeChat.listing || "")
+  );
+
+  $("messageList").innerHTML = filtered.map(m => `
+    <div class="bubble ${m.sender_id === currentUser.id ? "mine" : ""}">
+      ${esc(m.body)}
+      <small>${new Date(m.created_at).toLocaleString("ru-RU")}</small>
+    </div>`).join("") || '<div class="empty">Начни переписку.</div>';
+
+  $("messageList").scrollTop = $("messageList").scrollHeight;
 }
 
-function closeModal(id){
-$(id).style.display="none";
-}
+$("sendForm").onsubmit = async e => {
+  e.preventDefault();
 
-$("profileForm").onsubmit=async e=>{
-e.preventDefault();
+  if (!activeChat || !currentUser) return;
 
-const msg=$("profileMessage");
+  const body = $("messageInput").value.trim();
+  if (!body) return;
 
-try{
-let avatar_url=profileCache?.avatar_url||null;
-const file=$("avatarFile").files[0];
+  const { error } = await db.from("messages").insert({
+    sender_id: currentUser.id,
+    recipient_id: activeChat.other,
+    listing_id: activeChat.listing || null,
+    body
+  });
 
-if(file){
-if(file.size>3*1024*1024)throw Error("Аватарка должна быть не больше 3 МБ.");
+  if (error) {
+    alert(error.message);
+    return;
+  }
 
-if(!["image/jpeg","image/png","image/webp"].includes(file.type))
-throw Error("Подойдут JPG, PNG или WEBP.");
-
-const path=currentUser.id+"/"+Date.now()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
-
-const {error:upErr}=await db.storage.from("avatars").upload(path,file,{
-upsert:true,
-contentType:file.type
-});
-
-if(upErr)throw upErr;
-
-avatar_url=db.storage.from("avatars").getPublicUrl(path).data.publicUrl;
-}
-
-const username=$("editUsername").value.trim();
-
-if(username.length<3)throw Error("Ник должен быть не короче 3 символов.");
-
-const {error}=await db.from("profiles").update({
-username,
-avatar_url
-}).eq("id",currentUser.id);
-
-if(error)throw error;
-
-profileCache={...profileCache,username,avatar_url};
-msg.textContent="Профиль сохранён.";
-
-await loadProfile();
-
-}catch(err){
-msg.style.color="var(--danger)";
-msg.textContent=err.message;
-}
+  $("messageInput").value = "";
+  await refreshMessages();
+  await loadChats();
 };
 
-async function startChat(sellerId,listingId){
-if(!currentUser){
-openAuth("login");
-return;
+function closeAllOnBackdrop() {
+  document.querySelectorAll(".modal-bg").forEach(m => {
+    m.addEventListener("click", e => {
+      if (e.target === m) m.style.display = "none";
+    });
+  });
 }
 
-if(sellerId===currentUser.id){
-alert("Это твоё объявление.");
-return;
-}
+/* Запуск приложения */
+async function initialize() {
+  renderGamePicker();
 
-showPage("chatsPage");
+  // Сначала подписываемся на изменения авторизации.
+  if (!authListener) {
+    const { data } = db.auth.onAuthStateChange((event, session) => {
+      // Не выполняем запросы Supabase прямо внутри обработчика.
+      setTimeout(() => {
+        updateAccount(session?.user || null);
 
-try{
-const {error}=await db.from("messages").insert({
-sender_id:currentUser.id,
-recipient_id:sellerId,
-listing_id:listingId,
-body:"Здравствуйте! Интересует ваше объявление."
-});
+        if (event === "SIGNED_IN") {
+          closeAuth();
+        }
+      }, 0);
+    });
 
-if(error)throw error;
+    authListener = data.subscription;
+  }
 
-await loadChats();
+  try {
+    // Восстанавливаем сохранённую сессию, в том числе после Google.
+    const { data, error } = await db.auth.getSession();
 
-}catch(e){
-alert("Не удалось начать чат: "+e.message);
-}
-}
+    if (error) throw error;
 
-async function loadChats(){
-if(!currentUser){
-$("chatList").innerHTML='<div class="empty">Войди, чтобы пользоваться чатами.</div>';
-return;
-}
+    await updateAccount(data.session?.user || null);
 
-try{
-const {data,error}=await db.from("messages").select("*")
-.or(`sender_id.eq.${currentUser.id},recipient_id.eq.${currentUser.id}`)
-.order("created_at",{ascending:false}).limit(250);
+    await loadListings("searchResults");
+  } catch (e) {
+    console.error("Ошибка запуска:", e);
 
-if(error)throw error;
-
-const latest=new Map();
-
-data.forEach(m=>{
-const other=m.sender_id===currentUser.id?m.recipient_id:m.sender_id;
-const key=[other,m.listing_id||""].join("|");
-
-if(!latest.has(key)){
-latest.set(key,{other,listing_id:m.listing_id,last:m});
-}
-});
-
-const chats=[...latest.values()];
-
-$("chatList").innerHTML=chats.length
-?chats.map(c=>`
-<button class="chat-item ${activeChat&&activeChat.key===[c.other,c.listing_id||""].join("|")?"active":""}"
-onclick="openChat('${c.other}','${c.listing_id||""}')">
-<b>Пользователь ${c.other.slice(0,7)}</b>
-<div class="meta">${esc(c.last.body.slice(0,65))}</div>
-</button>`).join("")
-:'<div class="empty">Пока нет переписок.</div>';
-
-if(activeChat)await refreshMessages();
-
-}catch(e){
-$("chatList").innerHTML='<div class="empty">'+esc(e.message)+'</div>';
-}
-}
-
-async function openChat(other,listing){
-activeChat={other,listing,key:[other,listing].join("|")};
-$("chatHeading").textContent="Переписка";
-$("sendForm").classList.remove("hidden");
-
-await refreshMessages();
-loadChats();
-}
-
-async function refreshMessages(){
-if(!activeChat)return;
-
-const {data,error}=await db.from("messages").select("*")
-.or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${activeChat.other}),and(sender_id.eq.${activeChat.other},recipient_id.eq.${currentUser.id})`)
-.order("created_at",{ascending:true}).limit(150);
-
-if(error){
-$("messageList").innerHTML='<div class="empty">'+esc(error.message)+'</div>';
-return;
-}
-
-const filtered=data.filter(m=>(m.listing_id||"")===(activeChat.listing||""));
-
-$("messageList").innerHTML=filtered.map(m=>`
-<div class="bubble ${m.sender_id===currentUser.id?"mine":""}">
-${esc(m.body)}
-<small>${new Date(m.created_at).toLocaleString("ru-RU")}</small>
-</div>`).join("")||'<div class="empty">Начни переписку.</div>';
-
-$("messageList").scrollTop=$("messageList").scrollHeight;
-}
-
-$("sendForm").onsubmit=async e=>{
-e.preventDefault();
-
-if(!activeChat)return;
-
-const body=$("messageInput").value.trim();
-if(!body)return;
-
-const {error}=await db.from("messages").insert({
-sender_id:currentUser.id,
-recipient_id:activeChat.other,
-listing_id:activeChat.listing||null,
-body
-});
-
-if(error){
-alert(error.message);
-return;
-}
-
-$("messageInput").value="";
-await refreshMessages();
-await loadChats();
-};
-
-function closeAllOnBackdrop(){
-document.querySelectorAll(".modal-bg").forEach(m=>{
-m.addEventListener("click",e=>{
-if(e.target===m)m.style.display="none";
-});
-});
-}
-
-async function initialize(){
-renderGamePicker();
-
-try{
-const {data,error}=await db.auth.getSession();
-if(error)throw error;
-
-await updateAccount(data.session?.user||null);
-
-db.auth.onAuthStateChange((_event,session)=>{
-setTimeout(()=>updateAccount(session?.user||null),0);
-});
-
-await loadListings("searchResults");
-
-}catch(e){
-console.error("Supabase:",e);
-$("searchResults").innerHTML='<div class="empty">Не удалось подключиться к базе.</div>';
-}
+    $("searchResults").innerHTML =
+      '<div class="empty">Ошибка подключения: ' +
+      esc(e.message) + '</div>';
+  }
 }
 
 closeAllOnBackdrop();
 initialize();
 
-setInterval(()=>{
-if(currentUser&&$("chatsPage").classList.contains("active")){
-loadChats();
-}
-},7000);
+setInterval(() => {
+  if (currentUser && $("chatsPage").classList.contains("active")) {
+    loadChats();
+  }
+}, 7000);
 </script>
 </body>
 </html>
